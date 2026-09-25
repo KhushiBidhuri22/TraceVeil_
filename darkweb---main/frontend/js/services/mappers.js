@@ -91,12 +91,22 @@ export function mapSearch(payload) {
 }
 export function mapSuggestions(payload) {
   const rows = readField(payload, responsePaths.suggestions);
-  if (!Array.isArray(rows)) throw new Error('Suggestions need an array. Check responsePaths.suggestions in BACKEND_CONNECT.js.');
-  return rows.map(raw => {
-    const item = renameFields(object(raw, 'suggestion'), fields.suggestion);
-    if (!string(item.value) || !string(item.label)) throw new Error('A suggestion needs label and value.');
-    return {label:item.label, value:item.value, type:['handle','wallet','key'].includes(item.type) ? item.type : 'all'};
-  });
+  if (!Array.isArray(rows)) return [];
+  const result = [];
+  for (const raw of rows) {
+    if (!raw || typeof raw !== 'object') continue;
+    const item = renameFields(raw, fields.suggestion);
+    const val = item.value !== null && item.value !== undefined ? String(item.value).trim() : '';
+    const lbl = item.label !== null && item.label !== undefined ? String(item.label).trim() : val;
+    if (val && lbl) {
+      result.push({
+        label: lbl,
+        value: val,
+        type: ['handle', 'wallet', 'key'].includes(item.type) ? item.type : 'handle'
+      });
+    }
+  }
+  return result;
 }
 export function mapActorResponse(payload) { return mapActor(readField(payload, responsePaths.actor)); }
 export function mapSession(payload, responseType='session') {
