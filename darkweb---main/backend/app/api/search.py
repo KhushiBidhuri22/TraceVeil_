@@ -75,13 +75,17 @@ def suggestions():
                 }
                 for record in records
             ]
-        except Exception:
-            # Safe default fallback
+        if not items:
             items = [
-                {"label": "SilentTrace", "value": "SilentTrace", "type": "handle"},
-                {"label": "ShadowDrift", "value": "ShadowDrift", "type": "handle"},
-                {"label": "GreyRoot", "value": "GreyRoot", "type": "handle"},
-                {"label": "OnyxNode", "value": "OnyxNode", "type": "handle"},
+                {"label": "AshForge54 (handle)", "value": "AshForge54", "type": "handle"},
+                {"label": "BlackCipher (handle)", "value": "BlackCipher", "type": "handle"},
+                {"label": "WALLET_SYN_0001 (wallet)", "value": "WALLET_SYN_0001", "type": "wallet"},
+                {"label": "WALLET_SYN_0002 (wallet)", "value": "WALLET_SYN_0002", "type": "wallet"},
+                {"label": "PGP_SYN_0001 (pgp)", "value": "PGP_SYN_0001", "type": "key"},
+                {"label": "PGP_SYN_0002 (pgp)", "value": "PGP_SYN_0002", "type": "key"},
+                {"label": "user_21066 (username_alias)", "value": "user_21066", "type": "handle"},
+                {"label": "alias1420@example.invalid (email_alias)", "value": "alias1420@example.invalid", "type": "handle"},
+                {"label": "profile_119856 (profile_id)", "value": "profile_119856", "type": "handle"},
             ]
 
     return {"items": items}
