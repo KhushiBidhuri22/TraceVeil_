@@ -23,7 +23,7 @@ def suggestions():
         # Get distinctive handles, keys, wallets from PostgreSQL
         idents = (
             db.query(Identifier.identifier_type, Identifier.identifier_value)
-            .filter(Identifier.identifier_type.in_(["handle", "wallet", "pgp_key", "email"]))
+            .filter(Identifier.identifier_type.in_(["handle", "wallet", "pgp", "pgp_key", "email", "profile_id"]))
             .distinct()
             .limit(30)
             .all()
