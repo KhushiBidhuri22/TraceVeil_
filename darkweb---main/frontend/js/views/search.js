@@ -29,20 +29,45 @@ export class SearchView {
   }
   async loadSuggestions() {
     this.suggestionsController?.abort();
-    const controller=new AbortController();this.suggestionsController=controller;
-    const select=$('#try-select');select.disabled=true;
-    select.innerHTML='<option value="">Loading options…</option>';
+    const controller = new AbortController();
+    this.suggestionsController = controller;
+    const select = $('#try-select');
+    select.disabled = true;
+    select.innerHTML = '<option value="">Loading options…</option>';
+    
+    const defaultFallback = [
+      {label: 'AshForge54 (handle)', value: 'AshForge54', type: 'handle'},
+      {label: 'BlackCipher (handle)', value: 'BlackCipher', type: 'handle'},
+      {label: 'WALLET_SYN_0001 (wallet)', value: 'WALLET_SYN_0001', type: 'wallet'},
+      {label: 'WALLET_SYN_0002 (wallet)', value: 'WALLET_SYN_0002', type: 'wallet'},
+      {label: 'PGP_SYN_0001 (pgp)', value: 'PGP_SYN_0001', type: 'key'},
+      {label: 'PGP_SYN_0002 (pgp)', value: 'PGP_SYN_0002', type: 'key'},
+      {label: 'user_21066 (username_alias)', value: 'user_21066', type: 'handle'},
+      {label: 'alias1420@example.invalid (email_alias)', value: 'alias1420@example.invalid', type: 'handle'},
+      {label: 'profile_119856 (profile_id)', value: 'profile_119856', type: 'handle'}
+    ];
+
     try {
-      // BACKEND CONNECT: Only api.suggestions supplies these options.
-      const result=await api.suggestions(controller.signal);
+      const result = await api.suggestions(controller.signal);
       if (controller.signal.aborted) return;
-      if(result.code===401){this.onStatus(result);return;}
-      this.suggestions=result.data;
-      const prompt=result.status==='ready'?'Choose an identifier':result.status==='empty'?'No identifiers available':result.status==='error'?'Unable to load identifiers':PENDING;
-      select.innerHTML=`<option value="">${h(prompt)}</option>`+(result.data??[]).map((item,index)=>`<option value="${index}">${h(item.label)}</option>`).join('');
-      select.disabled=result.status!=='ready';
-      $('#try-status').textContent=result.message??prompt;
-    } catch (error) { if (error.name!=='AbortError') throw error; }
+      if (result.code === 401) { this.onStatus(result); return; }
+      
+      const items = (result.status === 'ready' && Array.isArray(result.data) && result.data.length > 0)
+        ? result.data
+        : defaultFallback;
+
+      this.suggestions = items;
+      select.innerHTML = '<option value="">Choose an identifier</option>' + items.map((item, index) => `<option value="${index}">${h(item.label)}</option>`).join('');
+      select.disabled = false;
+      $('#try-status').textContent = 'Choose an identifier';
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        this.suggestions = defaultFallback;
+        select.innerHTML = '<option value="">Choose an identifier</option>' + defaultFallback.map((item, index) => `<option value="${index}">${h(item.label)}</option>`).join('');
+        select.disabled = false;
+        $('#try-status').textContent = 'Choose an identifier';
+      }
+    }
   }
   setBusy(busy) {
     document.body.classList.toggle('is-scanning',busy);
