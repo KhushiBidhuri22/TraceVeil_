@@ -21,21 +21,23 @@ def suggestions():
     db = SessionLocal()
     try:
         # Get distinctive handles, keys, wallets from PostgreSQL
-        idents = (
-            db.query(Identifier.identifier_type, Identifier.identifier_value)
-            .filter(Identifier.identifier_type.in_(["handle", "wallet", "pgp", "pgp_key", "email", "profile_id"]))
-            .distinct()
-            .limit(30)
-            .all()
-        )
-        for itype, ivalue in idents:
-            if ivalue and len(ivalue.strip()) > 0:
-                frontend_type = "wallet" if "wallet" in itype else ("key" if "key" in itype or "pgp" in itype else "handle")
-                items.append({
-                    "label": f"{ivalue} ({itype})",
-                    "value": ivalue,
-                    "type": frontend_type,
-                })
+        types_to_fetch = ["handle", "wallet", "pgp", "username_alias", "email_alias", "profile_id"]
+        for target_type in types_to_fetch:
+            sub_idents = (
+                db.query(Identifier.identifier_type, Identifier.identifier_value)
+                .filter(Identifier.identifier_type == target_type)
+                .distinct()
+                .limit(6)
+                .all()
+            )
+            for itype, ivalue in sub_idents:
+                if ivalue and len(ivalue.strip()) > 0:
+                    frontend_type = "wallet" if "wallet" in itype else ("key" if "key" in itype or "pgp" in itype else "handle")
+                    items.append({
+                        "label": f"{ivalue} ({itype})",
+                        "value": ivalue,
+                        "type": frontend_type,
+                    })
 
         if not items:
             # Fallback to actors table
