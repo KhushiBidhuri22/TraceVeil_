@@ -1,0 +1,208 @@
+/* Production states. The four preceding stylesheets preserve the approved UI. */ .connection-notice  {
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:12px;
+  font-size:.875rem;
+  color:var(--muted);
+}
+.connection-label  {
+  border:1px solid var(--red-line);
+  color:var(--red);
+  padding:4px 7px;
+  font-size:.75rem;
+}
+.try-control  {
+  display:flex;
+  align-items:center;
+  gap:12px;
+  min-width:0;
+}
+.try-control select  {
+  max-width:min(330px,55vw);
+  min-width:190px;
+  color:var(--green);
+  background:var(--surface);
+  padding:10px 30px 10px 12px;
+  border:1px solid var(--line);
+  font:inherit;
+  border-radius:0;
+}
+.try-control select:disabled  {
+  opacity:1;
+  color:var(--muted);
+  cursor:default;
+}
+.try-control label  {
+  margin:0;
+  font:inherit;
+}
+.resource-status  {
+  color:var(--muted);
+  font-size:1rem;
+  line-height:1.7;
+}
+.graph-pending  {
+  position:absolute;
+  z-index:1;
+  top:50%;
+  left:50%;
+  transform:translate(-50%,-50%);
+  width:90%;
+  text-align:center;
+  color:var(--green);
+  font:500 clamp(1rem,2vw,1.5rem)/1.5 var(--display);
+  pointer-events:none;
+}
+.graph-pending[hidden]  {
+  display:none;
+}
+.record-card .card-subtext  {
+  overflow-wrap:anywhere;
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.identity-summary h1, .dossier-name h3, .book-title h2, .record-stamp, .leaf-topline  {
+  overflow-wrap:anywhere;
+}
+.dossier-score.is-pending b  {
+  font-size:1.05rem;
+  max-width:12ch;
+  line-height:1.5;
+}
+.result-card-top  {
+  overflow-wrap:anywhere;
+}
+.result-dossier  {
+  cursor:default;
+}
+.access-form  {
+  display:grid;
+  gap:12px;
+  margin-top:20px;
+}
+.access-form input  {
+  width:100%;
+  min-width:0;
+  background:var(--bg);
+  color:var(--ink);
+  border:1px solid var(--line);
+  padding:13px;
+  font:inherit;
+  border-radius:0;
+}
+.access-form .primary-button  {
+  margin-top:14px;
+}
+.access-form[hidden]  {
+  display:none;
+}
+#access-status  {
+  overflow-wrap:anywhere;
+}
+#logout-button  {
+  margin-top:20px;
+}
+.header-actions  {
+  gap:10px;
+  flex-shrink:0;
+}
+#access-button  {
+  font-size:.875rem;
+}
+.orbit-node b  {
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.book-title  {
+  min-width:0;
+}
+.book-title h2  {
+  min-width:0;
+}
+.book-sheet .focus-copy  {
+  overflow-wrap:anywhere;
+  white-space:pre-wrap;
+}
+.book-sheet .focus-facts dd  {
+  overflow-wrap:anywhere;
+}
+.orbit-brief>span  {
+  overflow-wrap:anywhere;
+  text-align:right;
+}
+#scan-fill  {
+  width:36%;
+  animation:pending-scan 1.3s ease-in-out infinite;
+}
+@keyframes pending-scan  {
+  from  {
+    transform:translateX(-110%)
+  }
+  to  {
+    transform:translateX(300%)
+  }
+}
+body.reduced-motion #scan-fill  {
+  animation:none;
+  transform:none;
+  width:100%;
+  opacity:.4;
+}
+@media(prefers-reduced-motion:reduce)  {
+  #scan-fill  {
+    animation:none;
+    transform:none;
+    width:100%;
+    opacity:.4;
+  }
+}
+@media(max-width:1120px)  {
+  .app-header  {
+    flex-wrap:wrap;
+  }
+  .header-actions  {
+    margin-left:auto;
+  }
+}
+@media(max-width:620px)  {
+  .search-extras  {
+    flex-wrap:wrap;
+  }
+  .try-control  {
+    width:100%;
+  }
+  .try-control select  {
+    max-width:calc(100% - 45px);
+    min-width:0;
+    flex:1;
+  }
+  .header-actions  {
+    flex-wrap:wrap;
+  }
+  .record-stamp  {
+    display:block;
+    margin-top:8px;
+  }
+}
+.book-title .score-pending  {
+  background:var(--surface);
+  border:1px solid var(--line);
+  border-radius:0;
+  box-shadow:none;
+}
+.book-title .score-pending::before  {
+  display:none;
+}
+.book-title .score-pending b  {
+  font-size:.875rem;
+  line-height:1.5;
+  text-align:center;
+}
+.book-title .score-pending small  {
+  font-size:.75rem;
+}

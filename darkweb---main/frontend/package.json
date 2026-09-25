@@ -1,0 +1,14 @@
+{
+  "name": "traceveil-frontend",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "TraceVeil modular frontend with backend connection points",
+  "scripts": {
+    "dev": "node dev-server.mjs",
+    "start": "node dev-server.mjs"
+  },
+  "engines": {
+    "node": ">=24"
+  }
+}

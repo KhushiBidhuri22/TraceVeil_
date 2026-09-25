@@ -1,0 +1,65 @@
+/* First screen. Credentials are enabled only when real auth endpoints exist. */
+body[data-screen=login] .screen-nav,
+body[data-screen=login] #access-button { display:none; }
+.login-screen {
+  display:grid;
+  grid-template-columns:1.1fr 1fr;
+  align-items:center;
+  gap:clamp(36px,7vw,110px);
+  min-height:calc(100svh - 230px);
+  max-width:1160px;
+  margin:auto;
+  padding:56px 0 72px;
+}
+.access-intro .eyebrow { color:var(--red); letter-spacing:.1em; }
+.access-symbol { margin-right:8px; }
+.access-intro h1 { font-size:clamp(2.7rem,5.4vw,5.2rem); margin:22px 0; line-height:1.07; }
+.access-intro h1 em { text-shadow:0 0 32px #52d4a942; }
+.access-intro .intro-copy { max-width:33ch; font-size:1rem; }
+.access-workflow { display:flex; flex-wrap:wrap; gap:14px; margin-top:36px; font-size:.7rem; letter-spacing:.09em; }
+.access-workflow i { color:var(--red); font-style:normal; }
+.access-panel {
+  position:relative;
+  min-width:0;
+  padding:28px 30px 22px;
+  border:1px solid #458a7266;
+  border-top:2px solid var(--green);
+  background:linear-gradient(145deg,#214735da,#0a231af2 28%,#051710fa 80%);
+  box-shadow:inset 0 1px #b0f5d252,inset 0 0 0 5px #193f262e,0 7px 0 #031009,0 8px 0 #3674536b,0 32px 85px #0008;
+  backdrop-filter:blur(16px);
+}
+.access-panel::after {
+  content:'';
+  position:absolute;
+  right:9px;
+  bottom:9px;
+  width:25px;
+  height:25px;
+  border-right:1px solid var(--red);
+  border-bottom:1px solid var(--red);
+  pointer-events:none;
+}
+.access-panel-top { display:flex; align-items:center; justify-content:space-between; gap:16px; padding-bottom:18px; margin-bottom:26px; border-bottom:1px solid var(--line); color:var(--muted); font-size:.66rem; letter-spacing:.07em; }
+.access-panel-top svg { color:var(--green); flex-shrink:0; }
+.access-panel h2 { font-size:1.15rem; letter-spacing:.04em; }
+.access-panel .access-status { padding:10px 0 3px; min-height:42px; color:var(--green); font-size:.85rem; }
+.access-panel .access-form { gap:10px; margin-top:20px; }
+.access-panel .access-form label { font-size:.8rem; color:var(--ink); margin-top:7px; }
+.access-panel .access-form input { background:#03130ccc; border-color:#467d626b; box-shadow:inset 0 3px 10px #0004; min-height:48px; }
+.access-panel .access-form input:disabled { opacity:.65; }
+.access-panel .access-form button { justify-content:center; width:100%; margin-top:18px; }
+.access-panel button:disabled { cursor:default; }
+.access-panel-foot { margin-top:30px; padding-top:17px; border-top:1px solid var(--line); color:var(--muted); font-size:.62rem; letter-spacing:.06em; }
+.access-continue { margin-top:24px; }
+#session-retry { margin-top:20px; }
+@media(max-width:800px) {
+  .login-screen { grid-template-columns:1fr; max-width:510px; gap:32px; padding-top:38px; }
+  .access-intro h1 { font-size:clamp(2.8rem,10vw,4.1rem); margin:16px 0; }
+  .access-intro .intro-copy { max-width:40ch; }
+  .access-workflow { margin-top:22px; }
+  .access-panel { padding:24px; }
+}
+@media(max-width:400px) {
+  .access-panel { padding:20px; }
+  .access-panel-top { font-size:.58rem; gap:8px; }
+}

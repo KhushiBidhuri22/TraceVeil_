@@ -1,0 +1,92 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#040f0b">
+  <meta name="description" content="TraceVeil account intelligence workspace. Search identifiers and review account connections, evidence and activity.">
+  <title>TraceVeil / Personnel access</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Oxanium:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/base.css">
+  <link rel="stylesheet" href="css/finishes.css">
+  <link rel="stylesheet" href="css/interactions.css">
+  <link rel="stylesheet" href="css/orbit-book.css">
+  <link rel="stylesheet" href="css/connections.css">
+  <link rel="stylesheet" href="css/access.css">
+  <link rel="stylesheet" href="css/numbers.css">
+  <link rel="preload" href="css/fonts/traceveil-segment.woff" as="font" type="font/woff" crossorigin>
+</head>
+<body data-screen="login" data-finish="glossy">
+  <a class="skip-link" href="#main">Skip to workspace</a>
+  <div class="world" aria-hidden="true"><canvas id="ambient-canvas"></canvas><div class="reading-shade"></div></div>
+  <header class="app-header">
+    <a class="brand" href="#search" aria-label="TraceVeil search"><svg viewBox="0 0 32 36" width="25" height="28" aria-hidden="true"><path d="M2 3h28L16 32 2 3Zm8 6h12l-6 13-6-13Z" fill="currentColor" fill-rule="evenodd"/></svg><span>TRACEVEIL<small>ACCOUNT INTELLIGENCE</small></span></a>
+    <nav class="screen-nav" aria-label="Workspace navigation"><a href="#search" data-route="search"><span>01</span> Search</a><a href="#actor" data-route="actor"><span>02</span> Actor workspace</a><a href="#detail/profile" data-route="detail" id="detail-nav"><span>03</span> Details</a></nav>
+    <div class="header-actions"><button id="access-button" class="quiet-button">Personnel access</button><button id="help-button" class="help-button" aria-label="How to use TraceVeil">?</button></div>
+  </header>
+  <div class="prototype-toolbar"><p class="connection-notice"><span class="connection-label">DATA LINK</span><span id="connection-status" role="status">Connection pending</span></p></div>
+  <main id="main">
+    <section id="screen-login" class="screen login-screen" aria-labelledby="access-title">
+      <div class="access-intro">
+        <p class="eyebrow"><span class="access-symbol" aria-hidden="true">◇</span> AUTHORIZED PERSONNEL ONLY</p>
+        <h1 id="access-title">PERSONNEL<br><em>ACCESS.</em></h1>
+        <p class="intro-copy">Sign in to enter the account intelligence workspace.</p>
+        <div class="access-workflow" aria-label="Workspace flow"><span>IDENTIFY</span><i aria-hidden="true">/</i><span>CONNECT</span><i aria-hidden="true">/</i><span>INVESTIGATE</span></div>
+      </div>
+      <div class="access-panel">
+        <div class="access-panel-top"><span>TRACEVEIL / ACCESS CONTROL</span><svg width="22" height="24" viewBox="0 0 24 26" fill="none" aria-hidden="true"><path d="M4 11h16v12H4zM7 11V7a5 5 0 0 1 10 0v4M12 16v3" stroke="currentColor" stroke-width="1.4"/></svg></div>
+        <h2>AUTHENTICATE YOUR SESSION</h2>
+        <p id="access-status" class="access-status" role="status">Connection pending</p>
+        <!-- BACKEND CONNECT: session/login/logout are configured in BACKEND_CONNECT.js. -->
+        <!-- Unconnected authentication stays pending. There is no dummy sign-in. -->
+        <form id="login-form" class="access-form">
+          <label for="login-identity">Personnel email or ID</label><input id="login-identity" name="username" autocomplete="username" spellcheck="false" required disabled>
+          <label for="login-password">Password</label><input id="login-password" name="password" type="password" autocomplete="current-password" required disabled>
+          <button class="primary-button" id="login-submit" type="submit" disabled>Connection pending</button>
+        </form>
+        <button class="quiet-button" id="session-retry" type="button" hidden>Retry connection</button>
+        <a class="primary-button access-continue" id="access-continue" href="#search" hidden>Return to workspace →</a>
+        <button class="quiet-button" id="logout-button" type="button" hidden>Sign out</button>
+        <p class="access-panel-foot">ACCESS IS ASSIGNED BY YOUR ORGANIZATION</p>
+      </div>
+    </section>
+    <section id="screen-search" class="screen search-screen" aria-labelledby="search-title" hidden>
+      <div class="search-focus"><p class="eyebrow">01 / FIND AN ACCOUNT</p><h1 id="search-title">FOLLOW THE <em>SIGNAL.</em></h1><p class="intro-copy">Start with a username, wallet address or signing key.</p>
+        <form id="search-form" class="search-form"><label for="query">Enter an identifier</label>
+          <div class="search-shell"><div class="query-line"><span class="search-marker" aria-hidden="true">⌕</span><input id="query" name="query" type="search" required maxlength="160" autocomplete="off" placeholder="Username, wallet address or signing key" aria-describedby="search-hint"><button id="search-submit" type="submit" class="primary-button">Search <span aria-hidden="true">→</span></button></div><div class="search-scanline" aria-hidden="true"></div></div>
+          <div class="search-extras"><div id="search-hint" class="try-control"><label for="try-select">Try</label><select id="try-select" disabled><option value="">Connection pending</option></select><span id="try-status" class="sr-only" role="status">Connection pending</span></div><details class="search-options"><summary>Search options</summary><label for="search-type">Identifier type</label><select id="search-type"><option value="all">Any identifier</option><option value="handle">Username</option><option value="wallet">Wallet address</option><option value="key">Signing key (PGP)</option></select></details></div>
+        </form>
+      </div>
+    </section>
+    <section id="screen-actor" class="screen actor-screen" aria-labelledby="actor-title" hidden>
+      <div class="section-nav"><a class="back-link" href="#search">← New search</a><span class="eyebrow">02 / ACTOR WORKSPACE</span></div>
+      <div class="actor-overview">
+        <section class="identity-summary"><p class="eyebrow">SELECTED ACCOUNT <span class="record-stamp" id="actor-id">Connection pending</span></p><h1 id="actor-title">Connection pending</h1><p id="actor-summary" class="actor-summary">Connection pending</p><div id="linked-names" class="linked-names" aria-label="Possibly connected usernames"></div><dl id="overview-facts" class="overview-facts"></dl><p class="review-note"><span aria-hidden="true">!</span> Suggested connections · Analyst review needed</p><div class="actor-actions"><button class="primary-button" data-open-detail="evidence">Review evidence <span aria-hidden="true">→</span></button><button class="text-button" data-open-export>Export</button></div></section>
+        <section class="graph-frame" aria-labelledby="graph-heading"><div class="graph-toolbar"><h2 id="graph-heading">CONNECTION MAP</h2><button id="filters-button" class="quiet-button">Filters</button></div><div class="graph-select-line"><label class="sr-only" for="node-select">Open a connection or branch</label><select id="node-select"><option value="">Choose a connection…</option></select></div><div id="graph-pending" class="graph-pending" role="status">Connection pending</div><canvas id="network-canvas" aria-label="Account connections. Scroll over this graph to rotate it. Select a node or line to open its details. Arrow keys rotate; plus and minus zoom."></canvas><div class="graph-bottom"><span id="graph-help">Scroll to rotate · Click a branch to inspect</span><div class="camera-controls"><button id="zoom-out" aria-label="Zoom out">−</button><button id="reset-view" aria-label="Reset graph view">↺</button><button id="zoom-in" aria-label="Zoom in">+</button></div></div><p id="graph-status" class="graph-status" role="status">Connection pending</p></section>
+      </div>
+      <section class="records-section" aria-labelledby="records-title"><div class="section-line"><div><p class="eyebrow">ACCOUNT RECORDS</p><h2 id="records-title">Choose what to investigate.</h2></div><span class="section-help">Open a card for its full details.</span></div><p id="actor-status" class="resource-status" role="status">Connection pending</p><div id="detail-cards" class="detail-card-grid"></div></section>
+    </section>
+    <section id="screen-detail" class="screen detail-screen" aria-labelledby="detail-title" hidden>
+      <div class="section-nav"><a class="back-link" href="#actor">← Actor workspace</a><span class="eyebrow">03 / RECORD DETAILS</span></div>
+      <div class="detail-heading"><div><p id="detail-eyebrow" class="eyebrow"></p><h1 id="detail-title">ACCOUNT PROFILE</h1></div><button class="quiet-button" data-open-export>Export account</button></div>
+      <div id="detail-context" class="detail-context" hidden></div>
+      <nav id="related-records" class="related-records" aria-label="Choose a record type"></nav>
+      <div id="detail-content" class="record-explorer"></div>
+    </section>
+  </main>
+  <footer class="app-footer"><span>TRACEVEIL <b>/</b> ACCOUNT INTELLIGENCE</span><span id="session-footer">Connection pending</span></footer>
+  <dialog id="scan-dialog" class="scan-overlay" aria-labelledby="scan-title" aria-describedby="search-status">
+    <div class="scan-interference" aria-hidden="true"><i></i><i></i><i></i><i></i><div class="scan-sweep"></div></div>
+    <div class="scan-console"><div class="scan-topline"><span>TRACEVEIL / IDENTIFIER SEARCH</span><span id="scan-step">01 / 03</span></div><h2 id="scan-title" data-echo="SEARCHING">SEARCHING</h2><p id="scan-query"></p><div class="scan-track" aria-hidden="true"><span id="scan-fill"></span></div><p id="search-status" role="status">Matching identifiers…</p><div class="scan-bottom"><span>SEARCH → MATCH → DOSSIER</span><button id="cancel-search" class="quiet-button" type="button">Cancel search</button></div></div>
+  </dialog>
+  <dialog id="search-dialog" class="modal results-modal" aria-labelledby="results-title"><button class="dialog-close" data-close aria-label="Close search results">×</button><p class="eyebrow">TRACEVEIL / SEARCH RESPONSE</p><div class="section-line"><h2 id="results-title">SEARCH RESPONSE</h2><label class="sort-label" id="sort-field" hidden>Sort <select id="sort"><option value="confidence">Strongest link</option><option value="recent">Last seen</option><option value="name">Name</option></select></label></div><p id="search-message" class="section-intro"></p><label id="result-picker" class="result-picker" hidden>Choose a match <select id="result-select"></select></label><div id="search-results"></div><p class="modal-hint">Suggested links require analyst review.</p></dialog>
+  <dialog id="filters-dialog" class="modal" aria-labelledby="filters-title"><button class="dialog-close" data-close aria-label="Close filters">×</button><p class="eyebrow">CONNECTION MAP</p><h2 id="filters-title">ADJUST THE GRAPH</h2><fieldset class="type-filters"><legend>Show these connections</legend><label><input type="checkbox" data-node-type="alias" checked> Usernames</label><label><input type="checkbox" data-node-type="key" checked> Signing keys</label><label><input type="checkbox" data-node-type="wallet" checked> Wallets</label><label><input type="checkbox" data-node-type="source" checked> Sources</label></fieldset><div class="threshold-field"><label for="threshold">Minimum link confidence <output id="threshold-value" class="technical-percent">0%</output></label><input id="threshold" type="range" min="0" max="100" value="0" step="1"><p class="small-copy">Higher values hide weaker links and links with no confidence score.</p></div><div class="view-options"><button id="orbit-toggle" class="quiet-button" aria-pressed="false">Rotate automatically</button><button id="flatten-view" class="quiet-button" aria-pressed="false">Switch to 2D</button></div><button class="primary-button" data-close>Apply & return</button></dialog>
+  <dialog id="export-dialog" class="modal" aria-labelledby="export-title"><button class="dialog-close" data-close aria-label="Close export">×</button><p class="eyebrow">SELECTED ACCOUNT</p><h2 id="export-title">EXPORT ACCOUNT</h2><p>Includes the selected account, evidence and connections.</p><div class="export-options"><button data-export="csv"><b>CSV</b><span>CSV · List of connections →</span></button><button data-export="json"><b>JSON</b><span>JSON · Account record →</span></button></div><p id="export-status" class="small-copy" role="status">Connection pending</p></dialog>
+  <dialog id="help-dialog" class="modal" aria-labelledby="help-title"><button class="dialog-close" data-close aria-label="Close guide">×</button><p class="eyebrow">QUICK GUIDE</p><h2 id="help-title">FOLLOW A CONNECTION</h2><ol class="guide-steps"><li><b>Search an identifier.</b><p>A full-screen search transition is followed by a popup dossier when the response arrives.</p></li><li><b>Open the actor workspace.</b><p>The account is on the left; its graph is on the right. Scroll over the graph to rotate. Scroll outside it to move down the page.</p></li><li><b>Choose a card or graph branch.</b><p>Choose a record type, then click a node or branch around the ring. Its card opens in the centre like a book. Arrow keys move between branches; the back link returns to the same account.</p></li></ol><p class="small-copy">Fields marked Connection pending are waiting for a data connection. Sign in with your personnel account to open the workspace.</p><button class="primary-button" data-close>Understood</button></dialog>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <noscript><p class="no-script">Enable JavaScript to use TraceVeil.</p></noscript>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

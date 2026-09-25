@@ -1,0 +1,30 @@
+/* Original segmented numeric font, bundled locally; no CDN or npm dependency. */
+@font-face {
+  font-family:'TraceVeil Segment';
+  src:url('./fonts/traceveil-segment.woff') format('woff');
+  font-style:normal;
+  font-weight:400;
+  font-display:swap;
+  unicode-range:U+0025,U+002D-0039;
+}
+:root { --numeric:'TraceVeil Segment','IBM Plex Mono',monospace; }
+/* Numeric spans inherit their container size. Pending text keeps the UI font. */
+.technical-percent,
+.dossier-score .technical-percent {
+  display:inline-block;
+  margin:0;
+  font-family:var(--numeric);
+  font-weight:400;
+  font-size:inherit;
+  font-style:normal;
+  font-synthesis:none;
+  line-height:1.35;
+  letter-spacing:.045em;
+  white-space:nowrap;
+  color:inherit;
+  text-shadow:0 0 8px #65e0b74a;
+}
+.clue-score .technical-percent {
+  font-size:min(1em,calc(4.5rem / var(--percent-characters,3)));
+}
+#threshold-value { color:var(--green); font-size:1.1rem; }
