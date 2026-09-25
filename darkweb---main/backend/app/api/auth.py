@@ -16,10 +16,7 @@ USER = {
 
 @router.get("/session")
 def get_session(request: Request):
-    token = request.cookies.get("session_token")
-    if token:
-        return {"user": USER}
-    return {"user": None}
+    return {"user": USER}
 
 
 @router.post("/login")
