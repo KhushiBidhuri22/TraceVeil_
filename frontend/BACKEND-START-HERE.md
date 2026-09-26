@@ -12,12 +12,13 @@ The other files draw the pages, cards, graph and animations. They already receiv
 | **2 — Response** | Where each JSON response contains its results |
 | **3 — Fields** | The backend's field names for the account, graph and records |
 | **4 — Requests** | HTTP method, query or body changes, if your API differs |
+| **5 — Signup** | Registration endpoint, request fields and acknowledgement mapping |
 
 The settings are initially unconnected. No API URLs or investigation records have been invented.
 
 ## Connect authentication first
 
-The first screen is now Personnel Login. Configure `session`, `login` and `logout` in `BACKEND_CONNECT.js`. Set `responsePaths.session` and `responsePaths.login` to the user object, and match `fields.user` to its `id`, `name` and `role`. A signed-out session may return a null user or HTTP 401. Sign-in must return the actual user and establish the backend session.
+The first screen for new visitors is Sign up. Existing personnel can open Sign in directly. Configure registration in section 5 using `SIGNUP-API.md`. Configure `session`, `login` and `logout` in `BACKEND_CONNECT.js`. Set `responsePaths.session` and `responsePaths.login` to the user object, and match `fields.user` to its `id`, `name` and `role`. A signed-out session may return a null user or HTTP 401. Sign-in must return the actual user and establish the backend session.
 
 Unconfigured authentication stays **Connection pending**. There is no preview account or fake login. A valid session opens Search; logout returns to Login.
 
@@ -38,7 +39,7 @@ For example, **if** your API calls the username field `username`, the mapping is
 | `suggestions` | Options in the **Try** dropdown |
 | `actor` | Selected account, graph, evidence, sources and activity cards |
 | `session`, `login`, `logout` | Authorized personnel access |
-| `export` | Actual CSV / JSON downloads |
+| `signup` | Registration acknowledgement, then Login |
 
 The actor response supplies the whole account workspace. If those sections come from separate APIs, combine their responses inside `backendCalls.actor` in the same file. Additional paths can be added to `apiConfig.endpoints`.
 

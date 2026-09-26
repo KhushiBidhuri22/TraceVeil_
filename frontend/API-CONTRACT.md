@@ -22,12 +22,12 @@ Keep network calls out of visual components. With the contract below, the compon
 | `suggestions` | GET | No query | `{ items: Suggestion[] }` |
 | `search` | GET | Query `q` and `type` | `{ items: Actor[] }`; each entry may be a summary |
 | `actor` | GET | Encoded actor ID substituted for `:id` in the configured path | `{ actor: Actor }` |
-| `export` | GET | `:id` in path; query `format=csv` or `format=json` | The actual file bytes |
 | `session` | GET | Session cookie | `{ user: User }` or `{ user: null }` |
+| `signup` | POST | JSON `{ fullName, email, organization, password }` | Registration acknowledgement; see `SIGNUP-API.md` |
 | `login` | POST | JSON `{ username, password }` | `{ user: User }`, with server setting the session cookie |
 | `logout` | POST | Session cookie; CSRF header if required | HTTP 204 or JSON success; server invalidates session |
 
-Paths should start with `/`. For the default requests, include `:id` in the actor and export paths. If your backend accepts IDs in the body or query instead, adjust the corresponding `backendCalls` function in `BACKEND_CONNECT.js`. The backend teammate supplies the actual paths; the frontend does not guess them. Query values and path IDs are URL-encoded.
+Paths should start with `/`. For the default requests, include `:id` in the actor path. If your backend accepts IDs in the body or query instead, adjust the corresponding `backendCalls` function in `BACKEND_CONNECT.js`. The backend teammate supplies the actual paths; the frontend does not guess them. Query values and path IDs are URL-encoded.
 
 `baseUrl: ''` uses the frontend's origin. The included local server **does not proxy backend requests**. During development, use the real backend origin in `baseUrl`, or arrange a same-origin reverse proxy separately. The backend must allow the frontend origin, normally `http://localhost:5500`, when the two run on different origins. The frontend uses `credentials: 'include'` for a cookie session; credentialed CORS needs an explicit allowed origin. Do not use `mode: 'no-cors'` to hide configuration errors.
 
@@ -148,16 +148,14 @@ If your backend exposes graph, evidence and activity separately, add their real 
 - A positive confidence threshold hides unscored edges. Threshold 0 includes unscored edges without inventing a percentage.
 - The frontend displays backend confidence. It does not compute identity attribution or certify any link.
 
-## Authentication and exports
+## Registration and authentication
 
 - The frontend is a static browser application. Every protected backend endpoint must authenticate the personnel session and authorize record access.
-- Personnel Login is the first screen. All workspace routes wait for a verified user from `session` or `login`. Unconfigured authentication stays pending. There is no client-side preview sign-in.
+- New visitors start on Signup and can choose Login. Registration uses the contract in `SIGNUP-API.md` and never grants a workspace session. All workspace routes wait for a verified user from `session` or `login`. Unconfigured authentication stays pending. There is no client-side preview sign-in.
 - A saved valid session opens Search automatically. A signed-out session may return a null user or HTTP 401. Other session errors show Retry connection.
 - Configure session and login together. The server should set an appropriate secure session cookie. Add CSRF headers through `getRequestHeaders()` when required by the backend.
 - Do not place database passwords, service secrets, private signing keys or permanent API tokens in client files. The browser can read frontend configuration.
 - Logout only reports success after the backend response. It clears selected account and result data from the interface.
-- Exports must return actual bytes. Only CSV and JSON are offered; there is no report/PDF option and no generated placeholder file.
-- Supply `Content-Disposition: attachment; filename="..."` and expose that header through CORS if the frontend needs the server's filename. The frontend otherwise derives a file name from the actual actor ID and the selected CSV/JSON format.
 
 ## Integration acceptance checks
 
@@ -171,4 +169,4 @@ Check these with authorized backend data after configuring the paths:
 6. Historical graph snapshots filter by observed timestamps.
 7. Missing fields remain pending; actual empty collections show no entries.
 8. Login, denied access, expired session and logout are handled by the real backend.
-9. Exports download the server's actual files; backend permissions apply to exports too.
+9. Signup accepts a real acknowledgement, then opens Login. Malformed responses, duplicate-account errors and cancelled requests never grant access.

@@ -36,7 +36,9 @@ export async function request(name, {id, query, body, method = 'GET', signal, fi
       cache:'no-store', ...(body !== undefined ? {body:JSON.stringify(body)} : {}),
     });
     if (!response.ok) {
-      const message = response.status === 401 ? 'Sign in to access these records.'
+      const message = name === 'signup' && response.status === 409 ? 'An account with these details already exists. Try signing in.'
+        : name === 'signup' && [400,422].includes(response.status) ? 'Check your registration details and password requirements, then try again.'
+        : response.status === 401 ? 'Sign in to access these records.'
         : response.status === 403 ? 'Your account does not have access to these records.'
         : response.status === 404 ? 'The requested record or endpoint was not found.'
         : `The server returned an error (${response.status}). Try again.`;

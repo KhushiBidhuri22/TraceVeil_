@@ -37,7 +37,7 @@ export class ActorView {
     this.resource=resource;this.actor=resource.data;
     const a=this.actor;
     // BACKEND CONNECT: The entire view receives one mapped resource from app.js.
-    $('#actor-title').textContent=text(a?.handle);$('#actor-id').textContent=text(a?.id);
+    $('#actor-title').textContent=text(a?.handle);
     $('#actor-summary').textContent=text(a?.description);
     $('#linked-names').innerHTML=Array.isArray(a?.aliases)?a.aliases.length?a.aliases.map(alias=>`<button data-destination="${h(alias.nodeId?destinationForNode(a,alias.nodeId):'detail/profile')}">${h(alias.handle)}</button>`).join(''):'<span>No aliases returned</span>':PENDING;
     $('#overview-facts').innerHTML=[['FIRST SEEN',stamp(a?.firstSeen,true)],['LAST SEEN',stamp(a?.lastSeen,true)],['SOURCES',countLabel(a?.sources,'records')]].map(([label,value])=>`<div><dt>${label}</dt><dd>${h(value)}</dd></div>`).join('');

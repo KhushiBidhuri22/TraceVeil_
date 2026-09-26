@@ -7,15 +7,16 @@ import { SearchView } from './views/search.js';
 import { ActorView } from './views/actor.js';
 import { renderDetail } from './views/detail.js';
 import { AccessView } from './views/access.js';
-import { ExportView } from './views/exports.js';
+import { SignupView } from './views/signup.js';
 import { api,pending,loading } from './services/traceveil-api.js';
 import { destinationForNode,destinationForEdge } from './models/workspace.js';
-import { text,PENDING } from './utils/display.js';
+import { text } from './utils/display.js';
+import { resolveRoute } from './models/navigation.js';
 
 const $=selector=>document.querySelector(selector);
 const $$=selector=>[...document.querySelectorAll(selector)];
 const mediaMotion=window.matchMedia('(prefers-reduced-motion: reduce)');
-let motion=!mediaMotion.matches,route='login',detailRoute='detail/profile';
+let motion=!mediaMotion.matches,route='signup',detailRoute='detail/profile';
 let actorResource=pending(),actorController=null,toastTimer=null;
 // Glossy is fixed. Old prototype preferences and ?finish=matte are ignored.
 // Motion follows the operating system's accessibility preference.
@@ -34,7 +35,6 @@ const scene=new NetworkScene($('#network-canvas'),{
     $('#orbit-toggle').setAttribute('aria-pressed',String(view.orbit));
     $('#flatten-view').textContent=view.flat?'Switch to 3D':'Switch to 2D';
     $('#flatten-view').setAttribute('aria-pressed',String(view.flat));
-    $('#graph-help').textContent=(view.flat?'Scroll to zoom':'Scroll to rotate')+' · Click a branch to inspect';
   },
 });
 const actorView=new ActorView({scene,navigate});
@@ -47,7 +47,7 @@ const search=new SearchView({dialogs,getMotion:()=>motion,onSelect:selectActor,o
 const access=new AccessView({navigate,onChange:()=>{
   clearWorkspace();if(access.canRead())search.loadSuggestions();
 }});
-const exportsView=new ExportView({dialogs,getActor:()=>actorResource.data,canRead:()=>access.canRead(),onStatus:connectionStatus});
+const signup=new SignupView({onRegistered:(registration,email)=>access.registered(registration,email)});
 
 // Always wait for a real personnel session before opening the workspace.
 $('#search-form').addEventListener('submit',event=>{
@@ -60,13 +60,14 @@ function notify(message) {
 }
 function connectionStatus(resource) {
   if(resource.code===401){access.expire();clearWorkspace();access.open();return false;}
-  $('#connection-status').textContent=resource.status==='ready'||resource.status==='empty'?'Response received':resource.status==='loading'?'Connecting…':resource.status==='error'?'Connection unavailable':PENDING;
+  // Data/error feedback stays next to its result or form, without a global strip.
+  return true;
 }
 function clearWorkspace() {
-  actorController?.abort();actorController=null;search.clear();exportsView.cancel();explorer.leave();
+  actorController?.abort();actorController=null;search.clear();explorer.leave();
   actorResource=pending();actorView.resetFilters();actorView.render(actorResource);
-  $('#detail-content').replaceChildren();$('#connection-status').textContent=PENDING;
-  navigate('search');
+  $('#detail-content').replaceChildren();
+  navigate(access.canRead()?'search':'login');
 }
 function navigate(next) {
   if(location.hash.slice(1)!==next)history.pushState(null,'','#'+next);
@@ -75,19 +76,23 @@ function navigate(next) {
 function showRoute(next,focus=false) {
   // BACKEND CONNECT: AccessView reads the real session/login response.
   // Missing endpoints never grant access. The server also authorizes each API.
-  if(!access.canRead())next='login';
-  route=next==='login'?'login':next?.startsWith('detail/')?'detail':next==='actor'?'actor':'search';
-  if(route==='login'&&location.hash!=='#login')history.replaceState(null,'','#login');
+  next=resolveRoute(next,access.canRead());
+  const previousRoute=route;
+  route=next==='signup'?'signup':next==='login'?'login':next.startsWith('detail/')?'detail':next==='actor'?'actor':'search';
+  if(previousRoute==='signup'&&route!=='signup')signup.leave();
+  if(previousRoute==='login'&&route!=='login')access.leave();
+  if((route==='login'||route==='signup')&&location.hash!=='#'+route)history.replaceState(null,'','#'+route);
   search.cancel(false);dialogs.closeAll();explorer.leave();
   $$('.screen').forEach(screen=>screen.hidden=screen.id!==`screen-${route}`);
   document.body.dataset.screen=route;
-  let title=route==='login'?'Personnel access':route==='search'?'Search':text(actorResource.data?.handle);
+  let title=route==='signup'?'Create account':route==='login'?'Personnel access':route==='search'?'Search':text(actorResource.data?.handle);
   if(route==='detail'){
     detailRoute=next;title=renderDetail(actorResource,detailRoute,explorer,scene,actorView.step);
     $('#detail-nav').href='#'+detailRoute;
   }
   scene.setActive(route==='actor');
   $$('[data-route]').forEach(link=>{if(link.dataset.route===route)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
+  $$('[data-auth-route]').forEach(link=>{if(link.dataset.authRoute===route)link.setAttribute('aria-current','page');else link.removeAttribute('aria-current');});
   document.title=`TraceVeil / ${title}`;
   if(focus){
     const screen=$(`#screen-${route}`),heading=screen.querySelector('h1');
@@ -127,11 +132,10 @@ function applyMotion() {
 mediaMotion.addEventListener('change',event=>{motion=!event.matches;applyMotion();});
 window.addEventListener('hashchange',()=>showRoute(location.hash.slice(1),true));
 $('.skip-link').addEventListener('click',event=>{event.preventDefault();$('#main').tabIndex=-1;$('#main').focus();});
-$('#help-button').addEventListener('click',()=>dialogs.open($('#help-dialog')));
 $('#filters-button').addEventListener('click',()=>dialogs.open($('#filters-dialog')));
 applyFinish();applyMotion();actorView.render(actorResource);showRoute(location.hash.slice(1));
 access.load().then(allowed=>{
-  const firstRoute=allowed?'search':'login';
+  const firstRoute=allowed?'search':resolveRoute(location.hash.slice(1),false);
   history.replaceState(null,'','#'+firstRoute);showRoute(firstRoute);
   if(allowed)search.loadSuggestions();
 });

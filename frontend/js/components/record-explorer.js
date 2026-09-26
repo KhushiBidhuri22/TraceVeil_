@@ -33,9 +33,8 @@ export class RecordExplorer {
     const count=this.pages.length;
     this.windowIndices=pageWindow(count,this.page);
     this.hasEvents=this.topic==='timeline'&&this.pages.some(p=>p.moment!==undefined);
-    const pending=this.pages.every(p=>p.placeholder);
     this.root.dataset.topic=this.topic;
-    this.root.innerHTML=`<div class="orbit-instrument"><div class="orbit-brief"><p>Select a branch to open its card.</p><span>${pending ? h(status||PENDING) : `${count} CARDS`} / ${h(actor?.handle)}</span></div>
+    this.root.innerHTML=`<div class="orbit-instrument">
       <div class="orbit-workspace"><svg class="orbit-lines" aria-hidden="true"><ellipse class="orbit-track outer"/><ellipse class="orbit-track inner"/><ellipse class="orbit-highlight"/>${this.windowIndices.map(i=>`<g><path class="orbit-hit" data-ring-page="${i}"/><path class="orbit-link" data-ring-link="${i}"/></g>`).join('')}</svg>
       <div class="orbit-node-group" role="group" aria-label="Choose a ${this.record.title.toLowerCase()} card">${this.windowIndices.map(i=>{const p=this.pages[i];return `<button class="orbit-node" data-ring-page="${i}" aria-controls="ring-page" aria-pressed="${i===this.page}"><span class="orbit-node-index">${two(i+1)}</span><span class="orbit-node-text"><b>${h(p.label)}</b><small>${h(p.sub??'OPEN CARD')}</small></span></button>`;}).join('')}</div>
       <div class="orbit-book"><div class="book-stack-layer layer-back" aria-hidden="true"></div><div class="book-stack-layer layer-middle" aria-hidden="true"></div><div class="book-spine" aria-hidden="true">TRACEVEIL / ${this.record.number}</div><div id="ring-page" class="book-live" role="region" aria-labelledby="ring-page-title">${this.pageMarkup()}</div></div></div>

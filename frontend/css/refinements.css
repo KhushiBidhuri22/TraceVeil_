@@ -1,0 +1,48 @@
+/* Internal-round update: clear navigation and signup, with the approved finish. */
+.screen-nav { font:600 1.125rem/1.4 var(--display); }
+.screen-nav a { min-height:44px; font-size:inherit; }
+.screen-nav a span { font-size:.875rem; }
+.back-link {
+  display:inline-flex;
+  align-items:center;
+  min-height:44px;
+  font:600 1.125rem/1.5 var(--display);
+  color:var(--heading);
+}
+.search-location { font-size:1rem; color:var(--heading); }
+.graph-bottom { justify-content:flex-end; }
+.detail-heading { justify-content:flex-start; }
+.auth-nav { display:none; align-items:center; gap:22px; font:600 1rem/1.4 var(--display); }
+.auth-nav a { display:inline-flex; align-items:center; min-height:44px; border-bottom:1px solid transparent; }
+.auth-nav a[aria-current=page] { border-color:var(--red); color:var(--heading); }
+body[data-screen=signup] .screen-nav,
+body[data-screen=signup] #access-button { display:none; }
+body[data-screen=signup] .auth-nav,
+body[data-screen=login] .auth-nav { display:flex; }
+.signup-screen { padding-top:36px; gap:clamp(28px,6vw,90px); }
+.signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); }
+.signup-screen .access-panel h2 { font-size:1.5rem; }
+.access-panel .access-status[hidden] { display:none; }
+.access-panel .access-status[data-state=error] { color:var(--red); }
+.access-panel .access-form { min-width:0; }
+.access-panel .access-panel-foot { font-size:.875rem; line-height:1.8; letter-spacing:0; }
+.access-panel-foot a { color:var(--green); text-decoration:underline; text-underline-offset:4px; }
+.optional-label,.field-hint { color:var(--muted); font-size:.8rem; }
+.field-hint { margin:0; line-height:1.5; }
+.signup-screen .access-form { gap:8px; }
+.signup-screen .access-form input { min-height:44px; }
+.signup-screen .access-status { min-height:0; padding:8px 0 0; }
+.signup-screen .access-panel-foot { margin-top:22px; }
+@media(max-width:1100px) {
+  .app-header { flex-wrap:wrap; }
+  .header-actions { margin-left:auto; }
+  .screen-nav { order:3; width:100%; justify-content:space-between; }
+}
+@media(max-width:520px) {
+  .screen-nav { gap:8px; }
+  .screen-nav a { font-size:1rem; gap:6px; min-width:0; }
+  .screen-nav a span { font-size:.8rem; }
+  .back-link { font-size:1.125rem; }
+  .auth-nav { gap:14px; }
+  .signup-screen { padding-top:24px; }
+}
