@@ -184,12 +184,32 @@ def get_actor(actor_id: str):
             actor_idents = actor.identifiers or []
             created_at_iso = actor.created_at.isoformat() if actor.created_at else "2024-01-15T00:00:00"
             last_seen_iso = actor.last_seen.isoformat() if actor.last_seen else "2024-05-18T12:30:00"
-            actor_confidence = round((actor.confidence or 0.85) * 100, 1)
+
+            try:
+                from sqlalchemy import text
+                conf_val = db.execute(
+                    text("""
+                        SELECT AVG(c) FROM (
+                            SELECT confidence AS c FROM observations WHERE actor_id = :aid AND confidence IS NOT NULL
+                            UNION ALL
+                            SELECT confidence AS c FROM identifiers WHERE actor_id = :aid AND confidence IS NOT NULL
+                            UNION ALL
+                            SELECT confidence AS c FROM relationships WHERE (source_entity_id = :aid OR target_entity_id = :aid) AND confidence IS NOT NULL
+                        ) sub
+                    """),
+                    {"aid": resolved_id},
+                ).scalar()
+                if conf_val is not None and float(conf_val) > 0:
+                    actor_confidence = round(float(conf_val) * 100, 1)
+                else:
+                    actor_confidence = round((actor.confidence or 0.85) * 100, 1)
+            except Exception:
+                actor_confidence = round((actor.confidence or 0.85) * 100, 1)
 
         # 2. Extract Aliases (Deduplicated, Clean & Neat)
         seen_aliases = {}
         for i in actor_idents:
-            if i.identifier_type in ["handle", "alias", "username", "email", "jabber", "telegram", "username_alias"]:
+            if i.identifier_type in ["handle", "alias", "username", "email", "jabber", "telegram", "username_alias", "email_alias"]:
                 val = (i.identifier_value or "").strip()
                 if not val:
                     continue
@@ -203,23 +223,6 @@ def get_actor(actor_id: str):
                         "nodeId": f"node_{i.identifier_id}",
                     }
         aliases = sorted(seen_aliases.values(), key=lambda x: x["confidence"], reverse=True)
-        if not aliases:
-            aliases = [
-                {
-                    "id": f"{resolved_id}_alias1",
-                    "handle": f"{handle}_shadow",
-                    "detail": "Observed on Dread Underground Forum",
-                    "confidence": 92.0,
-                    "nodeId": f"node_{resolved_id}_alias1",
-                },
-                {
-                    "id": f"{resolved_id}_alias2",
-                    "handle": f"{handle}_ops",
-                    "detail": "Observed on Bohemia Marketplace",
-                    "confidence": 86.0,
-                    "nodeId": f"node_{resolved_id}_alias2",
-                },
-            ]
 
         # 3. Extract PGP / Signing Keys (Deduplicated)
         seen_keys = {}
@@ -241,21 +244,6 @@ def get_actor(actor_id: str):
                     "algorithm": "RSA-4096 / PGP",
                 }
         keys = list(seen_keys.values())
-        if not keys:
-            keys = [
-                {
-                    "id": f"{resolved_id}_key1",
-                    "title": "PGP Key (4A78F291...)",
-                    "detail": "Observed on Dread Underground Forum",
-                    "source": "SRC_DREAD",
-                    "date": last_seen_iso,
-                    "confidence": 95.0,
-                    "nodeId": f"node_{resolved_id}_key1",
-                    "url": None,
-                    "value": "4A78F291B82C4902",
-                    "algorithm": "RSA-4096 / PGP",
-                }
-            ]
 
         # 4. Extract Crypto Wallets (Deduplicated)
         seen_wallets = {}
@@ -278,32 +266,22 @@ def get_actor(actor_id: str):
                     "network": net,
                 }
         wallets = list(seen_wallets.values())
-        if not wallets:
-            wallets = [
-                {
-                    "id": f"{resolved_id}_wallet1",
-                    "title": "Bitcoin (BTC) Wallet",
-                    "detail": "Tracked on AlphaBay & Bohemia Escrow",
-                    "source": "SRC_CRYPTO",
-                    "date": last_seen_iso,
-                    "confidence": 91.0,
-                    "nodeId": f"node_{resolved_id}_wallet1",
-                    "url": None,
-                    "value": "bc1qxy2kgdygjrsqtzq2n0yrf2493p83kkfjhx0wlh",
-                    "network": "Bitcoin (BTC)",
-                }
-            ]
 
         # 5. Extract Sources & Observations
         sources = []
         try:
-            from sqlalchemy import text
             src_rows = db.execute(
                 text("""
                     SELECT s.source_id, s.source_name, s.source_type, s.source_url, s.reliability_score 
                     FROM sources s 
-                    WHERE s.source_id IN (SELECT DISTINCT source_id FROM identifiers WHERE actor_id = :aid)
-                    LIMIT 10
+                    WHERE s.source_id IN (
+                        SELECT DISTINCT source_id FROM identifiers WHERE actor_id = :aid AND source_id IS NOT NULL
+                        UNION
+                        SELECT DISTINCT source_id FROM observations WHERE actor_id = :aid AND source_id IS NOT NULL
+                        UNION
+                        SELECT DISTINCT source_id FROM posts WHERE actor_id = :aid AND source_id IS NOT NULL
+                    )
+                    LIMIT 15
                 """),
                 {"aid": resolved_id},
             ).fetchall()
@@ -311,31 +289,17 @@ def get_actor(actor_id: str):
                 sources.append({
                     "id": str(row[0]),
                     "name": row[1] or str(row[0]),
-                    "title": f"Intelligence Source: {row[1] or row[0]}",
-                    "detail": f"Type: {row[2] or 'Darknet Forum'} | Status: Active Monitoring",
+                    "title": f"Source: {row[1] or row[0]}",
+                    "detail": f"Type: {row[2] or 'Darknet Forum'} | Active Monitoring",
                     "source": str(row[0]),
-                    "date": actor.created_at.isoformat() if actor.created_at else None,
+                    "date": created_at_iso,
                     "confidence": round((float(row[4] or 0.85)) * 100, 1),
                     "nodeId": f"node_src_{row[0]}",
                     "url": row[3],
-                    "observedAt": actor.created_at.isoformat() if actor.created_at else None,
+                    "observedAt": created_at_iso,
                 })
         except Exception:
             pass
-
-        if not sources and actor_idents:
-            sources.append({
-                "id": f"src_{actor_idents[0].source_id}",
-                "name": actor_idents[0].source_id,
-                "title": f"Source Feed: {actor_idents[0].source_id}",
-                "detail": "Verified darknet marketplace / forum crawler ingest.",
-                "source": actor_idents[0].source_id,
-                "date": actor.created_at.isoformat() if actor.created_at else None,
-                "confidence": 85.0,
-                "nodeId": f"node_src_{actor_idents[0].source_id}",
-                "url": None,
-                "observedAt": actor.created_at.isoformat() if actor.created_at else None,
-            })
 
         # 6. Extract Evidence
         evidence = []
@@ -344,10 +308,10 @@ def get_actor(actor_id: str):
                 text("""
                     SELECT relationship_id, relationship_type, target_entity_id, confidence, event_timestamp, source_id
                     FROM relationships 
-                    WHERE source_entity_id = :aid OR target_entity_id = :aid
-                    LIMIT 10
+                    WHERE source_entity_id = :aid OR target_entity_id = :aid OR source_entity_id = :handle OR target_entity_id = :handle
+                    LIMIT 20
                 """),
-                {"aid": resolved_id},
+                {"aid": resolved_id, "handle": handle},
             ).fetchall()
             for r in rel_rows:
                 evidence.append({
@@ -368,7 +332,7 @@ def get_actor(actor_id: str):
             evidence.append({
                 "id": f"ev_{resolved_id}_1",
                 "title": f"Persona correlation for {handle}",
-                "detail": f"Correlated {len(actor_idents)} dark web identifiers across multiple underground operations.",
+                "detail": f"Correlated {len(actor_idents)} dark web identifiers across underground operations.",
                 "source": "TraceVeil Engine",
                 "date": last_seen_iso,
                 "confidence": actor_confidence,
@@ -377,58 +341,57 @@ def get_actor(actor_id: str):
                 "method": "Stylometric & Identifier Analysis",
             })
 
-        # 7. Extract Timeline Events
+        # 7. Extract Timeline Events & Observations
         events = []
         try:
-            evt_rows = db.execute(
+            obs_rows = db.execute(
                 text("""
-                    SELECT event_id, event_type, event_timestamp, description, source_id, confidence
-                    FROM activity_timeline 
-                    WHERE actor_id = :aid 
-                    ORDER BY event_timestamp DESC 
-                    LIMIT 15
+                    SELECT observation_id, category, event_timestamp, content, source_id, confidence, handle
+                    FROM observations
+                    WHERE actor_id = :aid OR handle = :handle
+                    ORDER BY event_timestamp DESC
+                    LIMIT 20
                 """),
-                {"aid": resolved_id},
+                {"aid": resolved_id, "handle": handle},
             ).fetchall()
-            for row in evt_rows:
+            for row in obs_rows:
                 events.append({
                     "id": str(row[0]),
-                    "title": f"[{row[1]}] {row[3][:45] if row[3] else 'Dark web activity'}",
-                    "detail": row[3] or f"Activity recorded on {row[4]}",
+                    "title": f"[{row[1] or 'OBSERVATION'}] {row[3][:45] if row[3] else 'Dark web observation'}",
+                    "detail": row[3] or f"Observation recorded for handle {row[6] or handle}",
                     "source": row[4] or "Crawler Feed",
                     "date": row[2].isoformat() if row[2] else None,
-                    "confidence": round((float(row[5] or 0.85)) * 100, 1),
-                    "nodeId": f"node_evt_{row[0]}",
+                    "confidence": round(float(row[5] or 0.85) * 100, 1),
+                    "nodeId": f"node_obs_{row[0]}",
                     "url": None,
-                    "label": row[1] or "ACTIVITY",
+                    "label": row[1] or "OBSERVATION",
                 })
         except Exception:
             pass
 
         if not events:
-            # Fallback to posts
             try:
-                post_rows = db.execute(
+                evt_rows = db.execute(
                     text("""
-                        SELECT post_id, category, event_timestamp, content, source_id
-                        FROM posts 
-                        WHERE actor_id = :aid OR handle = :handle
+                        SELECT event_id, event_type, event_timestamp, description, source_id, confidence
+                        FROM activity_timeline 
+                        WHERE actor_id = :aid 
                         ORDER BY event_timestamp DESC 
-                        LIMIT 10
+                        LIMIT 15
                     """),
-                    {"aid": resolved_id, "handle": handle},
+                    {"aid": resolved_id},
                 ).fetchall()
-                for prow in post_rows:
+                for row in evt_rows:
                     events.append({
-                        "id": str(prow[0]),
-                        "title": f"[{prow[1] or 'POST'}] {prow[3][:40] if prow[3] else 'Forum post'}",
-                        "detail": prow[3][:200] if prow[3] else "Post content recorded.",
-                        "source": prow[4] or "Forum Post",
-                        "date": prow[2].isoformat() if prow[2] else None,
-                        "confidence": 85.0,
-                        "nodeId": f"node_post_{prow[0]}",
+                        "id": str(row[0]),
+                        "title": f"[{row[1]}] {row[3][:45] if row[3] else 'Dark web activity'}",
+                        "detail": row[3] or f"Activity recorded on {row[4]}",
+                        "source": row[4] or "Crawler Feed",
+                        "date": row[2].isoformat() if row[2] else None,
+                        "confidence": round((float(row[5] or 0.85)) * 100, 1),
+                        "nodeId": f"node_evt_{row[0]}",
                         "url": None,
-                        "label": prow[1] or "POST",
+                        "label": row[1] or "ACTIVITY",
                     })
             except Exception:
                 pass
