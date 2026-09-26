@@ -14,7 +14,7 @@
 
 // 1 — SERVER ADDRESS AND ENDPOINT PATHS
 function resolveBaseUrl() {
-  if (typeof window === 'undefined') return 'http://localhost:8000';
+  if (typeof window === 'undefined') return 'https://traceveil-backend.onrender.com';
   
   if (window.__API_BASE_URL__) return window.__API_BASE_URL__;
 
@@ -31,9 +31,13 @@ function resolveBaseUrl() {
     return '';
   }
 
-  // When served directly by the backend (localhost:8000, Render, Docker, or any production cloud deployment),
-  // return '' so all API requests use relative paths against the current domain.
-  return '';
+  // If served directly by backend on port 8000 locally
+  if ((hostname === 'localhost' || hostname === '127.0.0.1') && port === '8000') {
+    return '';
+  }
+
+  // When deployed on Vercel (trace-veil.vercel.app) or any cloud frontend, connect to live Render backend
+  return 'https://traceveil-backend.onrender.com';
 }
 
 export const apiConfig = {
