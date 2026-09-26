@@ -17,55 +17,65 @@ def suggestions():
     items = []
     db = SessionLocal()
     try:
-        # Get distinctive handles, keys, wallets from database
-        types_to_fetch = ["handle", "wallet", "pgp", "username_alias", "email_alias", "profile_id"]
         seen_vals = set()
-        for target_type in types_to_fetch:
-            sub_idents = (
-                db.query(Identifier.identifier_type, Identifier.identifier_value)
-                .filter(Identifier.identifier_type == target_type)
-                .distinct()
-                .limit(10)
-                .all()
-            )
-            for itype, ivalue in sub_idents:
-                v = (ivalue or "").strip()
-                if v and v not in seen_vals:
-                    seen_vals.add(v)
-                    frontend_type = "wallet" if "wallet" in itype else ("key" if "key" in itype or "pgp" in itype else "handle")
-                    items.append({
-                        "label": f"{v} ({itype})",
-                        "value": v,
-                        "type": frontend_type,
-                    })
 
+        # 1. Fetch handle identifiers sorted alphabetically
+        handles = (
+            db.query(Identifier.identifier_type, Identifier.identifier_value)
+            .filter(Identifier.identifier_type.in_(["handle", "username", "alias", "username_alias", "email_alias"]))
+            .distinct()
+            .order_by(Identifier.identifier_value.asc())
+            .all()
+        )
+        for itype, ivalue in handles:
+            v = (ivalue or "").strip()
+            if v and v not in seen_vals:
+                seen_vals.add(v)
+                items.append({"label": f"{v} ({itype})", "value": v, "type": "handle"})
+
+        # 2. Fetch wallet and key identifiers sorted alphabetically
+        other_idents = (
+            db.query(Identifier.identifier_type, Identifier.identifier_value)
+            .filter(Identifier.identifier_type.in_(["wallet", "pgp", "key", "signing_key"]))
+            .distinct()
+            .order_by(Identifier.identifier_value.asc())
+            .all()
+        )
+        for itype, ivalue in other_idents:
+            v = (ivalue or "").strip()
+            if v and v not in seen_vals:
+                seen_vals.add(v)
+                ftype = "wallet" if "wallet" in itype else "key"
+                items.append({"label": f"{v} ({itype})", "value": v, "type": ftype})
+
+        # 3. Fallback to actors table
         if not items:
-            # Fallback to actors table
-            actors = db.query(Actor).limit(20).all()
+            actors = db.query(Actor).order_by(Actor.actor_id.asc()).limit(50).all()
             for a in actors:
                 h = a.primary_handle or a.actor_id
                 if h not in seen_vals:
                     seen_vals.add(h)
-                    items.append({
-                        "label": f"{h} (handle)",
-                        "value": h,
-                        "type": "handle",
-                    })
+                    items.append({"label": f"{h} (handle)", "value": h, "type": "handle"})
     except Exception:
         pass
     finally:
         db.close()
 
     if not items:
-        default_items = [
-            ("AshForge54", "handle"), ("AshFox60", "handle"), ("AshMoth", "handle"),
-            ("AshShade20", "handle"), ("BlackCipher", "handle"), ("BlackDrift", "handle"),
-            ("ChromeGrid", "handle"), ("ChromeMarrow", "handle"), ("CrimsonCrow", "handle"),
-            ("WALLET_SYN_0001", "wallet"), ("WALLET_SYN_0002", "wallet"),
-            ("PGP_SYN_0001", "key"), ("PGP_SYN_0002", "key"),
-            ("user_21066", "handle"), ("alias1420@example.invalid", "handle")
+        default_names = [
+            "AshForge54", "AshFox60", "AshMoth", "AshShade20", "AshSignal52",
+            "BlackCipher", "BlackDrift", "BlackHarbor", "BlackReaper60", "BlackRoot71",
+            "ChromeGrid", "ChromeHarbor", "ChromeHex39", "ChromeMarrow", "ChromeOrbit",
+            "ChromeShade", "ChromeSignal", "CipherEcho", "CipherFalcon", "CipherForge",
+            "CipherHollow", "CipherSpire", "CrimsonCrow", "CrimsonDrift", "CrimsonForge",
+            "CrimsonLedger", "CrimsonMoth", "CrimsonReaper", "CrimsonTrace", "CrimsonVector47"
         ]
-        items = [{"label": f"{name} ({t})", "value": name, "type": t} for name, t in default_items]
+        for name in default_names:
+            items.append({"label": f"{name} (handle)", "value": name, "type": "handle"})
+        items.extend([
+            {"label": "WALLET_SYN_0001 (wallet)", "value": "WALLET_SYN_0001", "type": "wallet"},
+            {"label": "PGP_SYN_0001 (pgp)", "value": "PGP_SYN_0001", "type": "key"}
+        ])
 
     return {"items": items}
 
