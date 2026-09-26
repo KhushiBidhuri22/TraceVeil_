@@ -17,28 +17,40 @@ class Neo4jService:
         candidates = [env_uri, "bolt://localhost:7687", "bolt://127.0.0.1:7687", "bolt://neo4j:7687"]
 
         self.driver = None
+        self.connected = False
         for uri in candidates:
             try:
                 driver = GraphDatabase.driver(uri, auth=(user, password))
                 driver.verify_connectivity()
                 self.driver = driver
+                self.connected = True
                 break
             except Exception:
                 continue
 
-        if self.driver is None:
-            # Fallback driver without verify_connectivity to avoid startup crash
-            self.driver = GraphDatabase.driver(env_uri, auth=(user, password))
-
     def verify(self):
-        if self.driver:
+        if self.driver and self.connected:
             self.driver.verify_connectivity()
 
     def close(self):
         if self.driver:
-            self.driver.close()
+            try:
+                self.driver.close()
+            except Exception:
+                pass
 
     def get_actor_graph(self, actor_id: str) -> dict:
+        empty_graph = {
+            "actor_id": str(actor_id),
+            "nodes": [],
+            "edges": [],
+            "metrics": {},
+            "related_actors": [],
+            "graph_score": 0.0,
+            "evidence": [],
+        }
+        if not self.driver or not self.connected:
+            return empty_graph
         query = """
         MATCH (actor:Entity {
             entity_type: 'actor',

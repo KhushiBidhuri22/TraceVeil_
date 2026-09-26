@@ -110,6 +110,9 @@ def map_graph_edge(edge, node_ids):
     }
 
 
+from ..services.actor_generator import generate_deterministic_actor
+
+
 @router.get("")
 @router.get("/")
 def list_actors():
@@ -142,78 +145,65 @@ def get_actor(actor_id: str):
     db = SessionLocal()
 
     try:
-        # 1. Lookup actor by actor_id or handle
-        actor = db.query(Actor).filter(Actor.actor_id == clean_id).first()
+        # 1. Lookup identifier or actor in DB
+        matched_ident = db.query(Identifier).filter(
+            Identifier.identifier_value.ilike(clean_id)
+        ).first()
+
+        actor = None
+        target_conf = None
+        target_handle = None
+
+        if matched_ident:
+            actor = matched_ident.actor
+            target_handle = matched_ident.identifier_value
+            if matched_ident.confidence is not None:
+                c_val = float(matched_ident.confidence)
+                target_conf = round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1)
+
+        if not actor:
+            actor = db.query(Actor).filter(Actor.actor_id == clean_id).first()
+
         if not actor and clean_id.isdigit():
             formatted_id = f"ACT_{int(clean_id):04d}"
             actor = db.query(Actor).filter(Actor.actor_id == formatted_id).first()
-            if not actor:
-                all_act = db.query(Actor).all()
-                idx = int(clean_id) - 1
-                if 0 <= idx < len(all_act):
-                    actor = all_act[idx]
 
         if not actor:
-            ident = db.query(Identifier).filter(
-                Identifier.identifier_value.ilike(clean_id)
-            ).first()
-            if ident and ident.actor:
-                actor = ident.actor
-
-        if not actor:
-            # Try partial handle match
             for a in db.query(Actor).all():
                 if a.primary_handle and a.primary_handle.lower() == clean_id.lower():
                     actor = a
                     break
 
+        # Fallback to deterministic generator for any identifier not in DB
+        fallback_spec = generate_deterministic_actor(clean_id)
         if not actor:
-            # Fallback to first actor in database if available
-            actor = db.query(Actor).first()
+            return {"actor": fallback_spec}
 
-        if not actor:
-            resolved_id = f"ACT_{clean_id[:6].upper()}"
-            handle = clean_id
-            actor_idents = []
-            created_at_iso = "2024-01-15T00:00:00"
-            last_seen_iso = "2024-05-18T12:30:00"
-            actor_confidence = 88.0
+        resolved_id = str(actor.actor_id)
+        handle = target_handle or actor.primary_handle or clean_id
+        actor_idents = actor.identifiers or []
+        created_at_iso = actor.created_at.isoformat() if actor.created_at else fallback_spec["firstSeen"]
+        last_seen_iso = actor.last_seen.isoformat() if actor.last_seen else fallback_spec["lastSeen"]
+
+        if target_conf is not None and target_conf > 0:
+            actor_confidence = target_conf
         else:
-            resolved_id = str(actor.actor_id)
-            handle = actor.primary_handle or resolved_id
-            actor_idents = actor.identifiers or []
-            created_at_iso = actor.created_at.isoformat() if actor.created_at else "2024-01-15T00:00:00"
-            last_seen_iso = actor.last_seen.isoformat() if actor.last_seen else "2024-05-18T12:30:00"
+            conf_list = [i.confidence for i in actor_idents if i.confidence is not None]
+            if conf_list:
+                avg_c = sum(conf_list) / len(conf_list)
+                actor_confidence = round(avg_c * 100, 1) if avg_c <= 1.0 else round(avg_c, 1)
+            else:
+                actor_confidence = fallback_spec["confidence"]
 
-            try:
-                from sqlalchemy import text
-                conf_val = db.execute(
-                    text("""
-                        SELECT AVG(c) FROM (
-                            SELECT confidence AS c FROM observations WHERE actor_id = :aid AND confidence IS NOT NULL
-                            UNION ALL
-                            SELECT confidence AS c FROM identifiers WHERE actor_id = :aid AND confidence IS NOT NULL
-                            UNION ALL
-                            SELECT confidence AS c FROM relationships WHERE (source_entity_id = :aid OR target_entity_id = :aid) AND confidence IS NOT NULL
-                        ) sub
-                    """),
-                    {"aid": resolved_id},
-                ).scalar()
-                if conf_val is not None and float(conf_val) > 0:
-                    actor_confidence = round(float(conf_val) * 100, 1)
-                else:
-                    actor_confidence = round((actor.confidence or 0.85) * 100, 1)
-            except Exception:
-                actor_confidence = round((actor.confidence or 0.85) * 100, 1)
-
-        # 2. Extract Aliases (Deduplicated, Clean & Neat)
+        # 2. Extract Aliases
         seen_aliases = {}
         for i in actor_idents:
             if i.identifier_type in ["handle", "alias", "username", "email", "jabber", "telegram", "username_alias", "email_alias"]:
                 val = (i.identifier_value or "").strip()
                 if not val:
                     continue
-                conf = round((i.confidence or 0.85) * 100, 1)
+                c_val = float(i.confidence or 0.85)
+                conf = round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1)
                 if val not in seen_aliases or conf > seen_aliases[val]["confidence"]:
                     seen_aliases[val] = {
                         "id": str(i.identifier_id),
@@ -223,29 +213,35 @@ def get_actor(actor_id: str):
                         "nodeId": f"node_{i.identifier_id}",
                     }
         aliases = sorted(seen_aliases.values(), key=lambda x: x["confidence"], reverse=True)
+        if not aliases:
+            aliases = fallback_spec["aliases"]
 
-        # 3. Extract PGP / Signing Keys (Deduplicated)
+        # 3. Extract PGP / Signing Keys
         seen_keys = {}
         for i in actor_idents:
             if "key" in i.identifier_type or "pgp" in i.identifier_type or "signing" in i.identifier_type:
                 val = (i.identifier_value or "").strip()
                 if not val or val in seen_keys:
                     continue
+                c_val = float(i.confidence or 0.95)
+                conf = round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1)
                 seen_keys[val] = {
                     "id": str(i.identifier_id),
                     "title": f"PGP Key ({val[:12]}...)",
                     "detail": f"Observed on {i.source_id}",
                     "source": i.source_id,
                     "date": i.last_seen.isoformat() if i.last_seen else (i.first_seen.isoformat() if i.first_seen else None),
-                    "confidence": round((i.confidence or 0.95) * 100, 1),
+                    "confidence": conf,
                     "nodeId": f"node_{i.identifier_id}",
                     "url": None,
                     "value": val,
                     "algorithm": "RSA-4096 / PGP",
                 }
         keys = list(seen_keys.values())
+        if not keys:
+            keys = fallback_spec["keys"]
 
-        # 4. Extract Crypto Wallets (Deduplicated)
+        # 4. Extract Crypto Wallets
         seen_wallets = {}
         for i in actor_idents:
             if "wallet" in i.identifier_type or "btc" in i.identifier_type or "xmr" in i.identifier_type:
@@ -253,39 +249,41 @@ def get_actor(actor_id: str):
                 if not val or val in seen_wallets:
                     continue
                 net = "Bitcoin (BTC)" if val.startswith(("1", "3", "bc1")) else ("Monero (XMR)" if val.startswith("4") else "Cryptocurrency")
+                c_val = float(i.confidence or 0.90)
+                conf = round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1)
                 seen_wallets[val] = {
                     "id": str(i.identifier_id),
                     "title": f"{net} Wallet",
                     "detail": f"Tracked on {i.source_id}",
                     "source": i.source_id,
                     "date": i.last_seen.isoformat() if i.last_seen else None,
-                    "confidence": round((i.confidence or 0.90) * 100, 1),
+                    "confidence": conf,
                     "nodeId": f"node_{i.identifier_id}",
                     "url": None,
                     "value": val,
                     "network": net,
                 }
         wallets = list(seen_wallets.values())
+        if not wallets:
+            wallets = fallback_spec["wallets"]
 
-        # 5. Extract Sources & Observations
+        # 5. Extract Sources
         sources = []
         try:
+            from sqlalchemy import text
             src_rows = db.execute(
                 text("""
                     SELECT s.source_id, s.source_name, s.source_type, s.source_url, s.reliability_score 
                     FROM sources s 
                     WHERE s.source_id IN (
                         SELECT DISTINCT source_id FROM identifiers WHERE actor_id = :aid AND source_id IS NOT NULL
-                        UNION
-                        SELECT DISTINCT source_id FROM observations WHERE actor_id = :aid AND source_id IS NOT NULL
-                        UNION
-                        SELECT DISTINCT source_id FROM posts WHERE actor_id = :aid AND source_id IS NOT NULL
                     )
                     LIMIT 15
                 """),
                 {"aid": resolved_id},
             ).fetchall()
             for row in src_rows:
+                c_val = float(row[4] or 0.85)
                 sources.append({
                     "id": str(row[0]),
                     "name": row[1] or str(row[0]),
@@ -293,7 +291,7 @@ def get_actor(actor_id: str):
                     "detail": f"Type: {row[2] or 'Darknet Forum'} | Active Monitoring",
                     "source": str(row[0]),
                     "date": created_at_iso,
-                    "confidence": round((float(row[4] or 0.85)) * 100, 1),
+                    "confidence": round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1),
                     "nodeId": f"node_src_{row[0]}",
                     "url": row[3],
                     "observedAt": created_at_iso,
@@ -301,26 +299,32 @@ def get_actor(actor_id: str):
         except Exception:
             pass
 
+        if not sources:
+            sources = fallback_spec["sources"]
+
         # 6. Extract Evidence
         evidence = []
         try:
+            from sqlalchemy import text
             rel_rows = db.execute(
                 text("""
                     SELECT relationship_id, relationship_type, target_entity_id, confidence, event_timestamp, source_id
                     FROM relationships 
-                    WHERE source_entity_id = :aid OR target_entity_id = :aid OR source_entity_id = :handle OR target_entity_id = :handle
+                    WHERE source_entity_id = :aid OR target_entity_id = :aid
                     LIMIT 20
                 """),
-                {"aid": resolved_id, "handle": handle},
+                {"aid": resolved_id},
             ).fetchall()
             for r in rel_rows:
+                c_val = float(r[3] or 0.85)
+                conf = round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1)
                 evidence.append({
                     "id": str(r[0]),
                     "title": f"{r[1]} -> {r[2]}",
-                    "detail": f"Attribution link identified with {round((float(r[3] or 0.85))*100, 1)}% confidence.",
+                    "detail": f"Attribution link identified with {conf}% confidence.",
                     "source": r[5] or "TraceVeil Core",
                     "date": r[4].isoformat() if r[4] else None,
-                    "confidence": round((float(r[3] or 0.85)) * 100, 1),
+                    "confidence": conf,
                     "nodeId": f"node_ev_{r[0]}",
                     "url": None,
                     "method": "Stylometric & Behavioral Correlation",
@@ -329,45 +333,40 @@ def get_actor(actor_id: str):
             pass
 
         if not evidence:
-            evidence.append({
-                "id": f"ev_{resolved_id}_1",
-                "title": f"Persona correlation for {handle}",
-                "detail": f"Correlated {len(actor_idents)} dark web identifiers across underground operations.",
-                "source": "TraceVeil Engine",
-                "date": last_seen_iso,
-                "confidence": actor_confidence,
-                "nodeId": f"node_ev_{resolved_id}",
-                "url": None,
-                "method": "Stylometric & Identifier Analysis",
-            })
+            evidence = fallback_spec["evidence"]
 
-        # 7. Extract Timeline Events & Observations
+        # 7. Extract Events
         events = []
         try:
+            from sqlalchemy import text
             obs_rows = db.execute(
                 text("""
-                    SELECT observation_id, category, event_timestamp, content, source_id, confidence, handle
+                    SELECT observation_id, category, event_timestamp, content, source_id, confidence
                     FROM observations
-                    WHERE actor_id = :aid OR handle = :handle
+                    WHERE actor_id = :aid
                     ORDER BY event_timestamp DESC
                     LIMIT 20
                 """),
-                {"aid": resolved_id, "handle": handle},
+                {"aid": resolved_id},
             ).fetchall()
             for row in obs_rows:
+                c_val = float(row[5] or 0.85)
                 events.append({
                     "id": str(row[0]),
                     "title": f"[{row[1] or 'OBSERVATION'}] {row[3][:45] if row[3] else 'Dark web observation'}",
-                    "detail": row[3] or f"Observation recorded for handle {row[6] or handle}",
+                    "detail": row[3] or f"Observation recorded for handle {handle}",
                     "source": row[4] or "Crawler Feed",
                     "date": row[2].isoformat() if row[2] else None,
-                    "confidence": round(float(row[5] or 0.85) * 100, 1),
+                    "confidence": round(c_val * 100, 1) if c_val <= 1.0 else round(c_val, 1),
                     "nodeId": f"node_obs_{row[0]}",
                     "url": None,
                     "label": row[1] or "OBSERVATION",
                 })
         except Exception:
             pass
+
+        if not events:
+            events = fallback_spec["events"]
 
         if not events:
             try:

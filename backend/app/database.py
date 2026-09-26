@@ -19,29 +19,14 @@ def create_resilient_engine():
     if raw_db_url:
         url = raw_db_url.replace("postgresql://", "postgresql+psycopg://")
         try:
-            eng = create_engine(url, pool_pre_ping=True)
+            eng = create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 1})
             with eng.connect() as conn:
                 conn.execute(text("SELECT 1"))
             return eng
         except Exception:
             pass
 
-    candidate_hosts = [ENV_POSTGRES_HOST]
-    for h in ["localhost", "127.0.0.1", "postgres"]:
-        if h not in candidate_hosts:
-            candidate_hosts.append(h)
-
-    for host in candidate_hosts:
-        url = f"postgresql+psycopg://{POSTGRES_USER}:{POSTGRES_PASSWORD}@{host}:{POSTGRES_PORT}/{POSTGRES_DB}"
-        try:
-            eng = create_engine(url, pool_pre_ping=True, connect_args={"connect_timeout": 3})
-            with eng.connect() as conn:
-                conn.execute(text("SELECT 1"))
-            return eng
-        except Exception:
-            continue
-
-    # Fallback SQLite if postgres not reachable during dev
+    # Instant SQLite fallback for local development
     backend_dir = Path(__file__).resolve().parents[1]
     db_path = backend_dir / "app.db"
     return create_engine(
@@ -76,3 +61,46 @@ def init_db():
     from . import models  # noqa: F401
 
     Base.metadata.create_all(bind=engine)
+
+    # Auto-seed if database has 0 actors
+    db = SessionLocal()
+    try:
+        if db.query(models.Actor).count() == 0:
+            csv_path = None
+            for p in [
+                Path(__file__).resolve().parents[2] / "04_identifiers.csv",
+                Path(__file__).resolve().parents[2] / "data" / "raw" / "04_identifiers.csv",
+            ]:
+                if p.exists():
+                    csv_path = p
+                    break
+            if csv_path:
+                import pandas as pd
+                df = pd.read_csv(csv_path)
+                df["first_seen"] = pd.to_datetime(df["first_seen"], errors="coerce")
+                df["last_seen"] = pd.to_datetime(df["last_seen"], errors="coerce")
+                actor_ids = df["actor_id"].unique()
+                actors = [models.Actor(actor_id=str(aid)) for aid in actor_ids]
+                db.add_all(actors)
+                db.commit()
+
+                idents = []
+                for _, r in df.iterrows():
+                    idents.append(models.Identifier(
+                        identifier_id=str(r["identifier_id"]),
+                        actor_id=str(r["actor_id"]),
+                        identifier_type=str(r["identifier_type"]),
+                        identifier_value=str(r["identifier_value"]),
+                        source_id=str(r["source_id"]),
+                        first_seen=r["first_seen"] if pd.notnull(r["first_seen"]) else None,
+                        last_seen=r["last_seen"] if pd.notnull(r["last_seen"]) else None,
+                        confidence=float(r["confidence"]) if pd.notnull(r["confidence"]) else 0.85,
+                        status=str(r["status"]) if pd.notnull(r["status"]) else None,
+                        observation_id=str(r["observation_id"]) if pd.notnull(r["observation_id"]) else None,
+                    ))
+                db.bulk_save_objects(idents)
+                db.commit()
+    except Exception:
+        db.rollback()
+    finally:
+        db.close()
