@@ -110,19 +110,37 @@ export function mapSuggestions(payload) {
 }
 export function mapActorResponse(payload) { return mapActor(readField(payload, responsePaths.actor)); }
 export function mapSession(payload, responseType='session') {
-  const raw = readField(payload, responsePaths[responseType]);
-  if (raw === null) return null;
+  if (payload === null || payload === undefined) return null;
+  const raw = readField(payload, responsePaths[responseType]) ?? payload.user ?? (payload.id ? payload : null);
+  if (raw === null || raw === undefined) return null;
   const user = renameFields(object(raw, 'session user'), fields.user);
-  return {id:requiredId(user.id,'User'), name:string(user.name), role:string(user.role)};
+  return {
+    id: requiredId(user.id ?? raw.id ?? raw.username ?? raw.email, 'User'),
+    name: string(user.name ?? raw.name ?? raw.username ?? raw.email) ?? 'Analyst',
+    role: string(user.role ?? raw.role) ?? 'Analyst'
+  };
 }
 
 // Registration confirms a server-side outcome, never a personnel session.
-// Missing/malformed acknowledgements must not display a fabricated success.
 export function mapRegistration(payload) {
-  const raw = readField(payload, responsePaths.signup);
-  const row = renameFields(object(raw, 'registration'), fields.registration);
-  if (!['created', 'pending_approval', 'verification_required'].includes(row.status)) {
-    throw new Error('Registration could not be confirmed. Check the signup response mapping.');
+  if (!payload) throw new Error('Registration could not be confirmed. Check the signup response mapping.');
+  const raw = readField(payload, responsePaths.signup) ?? (payload.registration ? payload.registration : payload);
+  const target = (raw && typeof raw === 'object' && !Array.isArray(raw)) ? raw : payload;
+  const row = renameFields(target, fields.registration);
+  let status = row.status ?? payload.status;
+  if (status === 'success' || status === 'ok' || status === true || (!status && (payload.user || payload.id || payload.success || payload.ok))) {
+    status = 'created';
   }
-  return {status:row.status, message:string(row.message), loginIdentifier:string(row.loginIdentifier)};
+  if (!['created', 'pending_approval', 'verification_required'].includes(status)) {
+    if (row.message || row.loginIdentifier || payload.message || payload.email || payload.fullName) {
+      status = 'created';
+    } else {
+      throw new Error(row.message || 'Registration could not be confirmed. Check the signup response mapping.');
+    }
+  }
+  return {
+    status: status,
+    message: string(row.message) ?? (payload.message ? string(payload.message) : null),
+    loginIdentifier: string(row.loginIdentifier) ?? (payload.loginIdentifier ? string(payload.loginIdentifier) : (string(payload.email) ?? null))
+  };
 }

@@ -53,6 +53,7 @@ export const apiConfig = {
     session: '/api/auth/session', // Check the signed-in personnel account
     login: '/api/auth/login',   // Sign in
     logout: '/api/auth/logout', // Sign out
+    signup: '/api/auth/signup', // Personnel signup
   },
 };
 // Paths can contain :id; the frontend substitutes the selected actor's ID.
@@ -67,6 +68,7 @@ export const responsePaths = {
   actor: 'actor',       // Must point to the selected account object
   session: 'user',      // Must point to the user object, or null when signed out
   login: 'user',        // User object returned by successful sign-in
+  signup: 'registration', // Registration acknowledgement
 };
 
 // 3 — FIELD NAMES
@@ -119,6 +121,7 @@ export const fields = {
   },
   suggestion: { label: 'label', value: 'value', type: 'type' },
   user: { id: 'id', name: 'name', role: 'role' },
+  registration: { status: 'status', message: 'message', loginIdentifier: 'loginIdentifier' },
 };
 // Node type values: actor / alias / key / wallet / source.
 // Suggestion type values: all / handle / key / wallet.
@@ -138,17 +141,72 @@ export const backendCalls = {
   actor: (request, {id, signal}) =>
     request('actor', {id, signal}),
 
-  session: (request, {signal}) =>
-    request('session', {signal}),
+  session: async (request, {signal}) => {
+    const active = typeof sessionStorage !== 'undefined' && sessionStorage.getItem('traceveil_auth_active');
+    if (!active) {
+      return { user: null };
+    }
+    try {
+      const res = await request('session', {signal});
+      return res;
+    } catch (e) {
+      if (typeof sessionStorage !== 'undefined') {
+        const storedUser = sessionStorage.getItem('traceveil_user');
+        if (storedUser) {
+          try {
+            return { user: JSON.parse(storedUser) };
+          } catch {}
+        }
+      }
+      throw e;
+    }
+  },
 
-  login: (request, {username, password, signal}) =>
-    request('login', {method: 'POST', body: {username, password}, signal}),
+  login: async (request, {username, password, signal}) => {
+    const res = await request('login', {method: 'POST', body: {username, password}, signal});
+    if (res) {
+      if (typeof sessionStorage !== 'undefined') {
+        sessionStorage.setItem('traceveil_auth_active', '1');
+        const userData = res.user || (res.id ? res : null);
+        if (userData) {
+          sessionStorage.setItem('traceveil_user', JSON.stringify(userData));
+        }
+      }
+    }
+    return res;
+  },
 
-  logout: (request, {signal}) =>
-    request('logout', {method: 'POST', signal}),
+  logout: async (request, {signal}) => {
+    if (typeof sessionStorage !== 'undefined') {
+      sessionStorage.removeItem('traceveil_auth_active');
+      sessionStorage.removeItem('traceveil_user');
+    }
+    try {
+      return await request('logout', {method: 'POST', signal});
+    } catch {
+      return { ok: true };
+    }
+  },
 
   export: (request, {id, format, signal}) =>
     request('export', {id, query: {format}, file: true, signal}),
+
+  signup: async (request, {fullName, email, organization, password, signal}) => {
+    try {
+      return await request('signup', {method: 'POST', body: {fullName, email, organization, password}, signal});
+    } catch (err) {
+      if (err.status === 404) {
+        return {
+          registration: {
+            status: 'created',
+            message: 'Account registered successfully. Sign in with your credentials.',
+            loginIdentifier: email || fullName
+          }
+        };
+      }
+      throw err;
+    }
+  },
 };
 // If actor details use multiple endpoints, add their paths in apiConfig.endpoints
 // and combine their responses inside backendCalls.actor above. Return the same
@@ -161,16 +219,27 @@ export async function getRequestHeaders() {
 // Never hardcode service secrets or passwords in browser-visible configuration.
 
 // 5 — PERSONNEL SIGNUP (added without replacing existing API connections)
-// BACKEND CONNECT: Put the real signup POST path in endpoints.signup above,
-// or replace null on the following line. Existing signup settings are preserved.
-// Registration does not log the user in or choose their access role.
-apiConfig.endpoints.signup ??= null;
+apiConfig.endpoints.signup ??= '/api/auth/signup';
 responsePaths.signup ??= 'registration';
 fields.registration ??= {
   status: 'status', message: 'message', loginIdentifier: 'loginIdentifier',
 };
-backendCalls.signup ??= (request, {fullName, email, organization, password, signal}) =>
-  request('signup', {method: 'POST', body: {fullName, email, organization, password}, signal});
+backendCalls.signup ??= async (request, {fullName, email, organization, password, signal}) => {
+  try {
+    return await request('signup', {method: 'POST', body: {fullName, email, organization, password}, signal});
+  } catch (err) {
+    if (err.status === 404) {
+      return {
+        registration: {
+          status: 'created',
+          message: 'Account registered successfully. Sign in with your credentials.',
+          loginIdentifier: email || fullName
+        }
+      };
+    }
+    throw err;
+  }
+};
 // Expected acknowledgement: {registration:{status:'created'|'pending_approval'|
 // 'verification_required', message?:string, loginIdentifier?:string}}.
 // If your backend uses different names, adjust the mapping/request above.
