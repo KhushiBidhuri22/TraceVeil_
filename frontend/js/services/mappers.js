@@ -115,3 +115,14 @@ export function mapSession(payload, responseType='session') {
   const user = renameFields(object(raw, 'session user'), fields.user);
   return {id:requiredId(user.id,'User'), name:string(user.name), role:string(user.role)};
 }
+
+// Registration confirms a server-side outcome, never a personnel session.
+// Missing/malformed acknowledgements must not display a fabricated success.
+export function mapRegistration(payload) {
+  const raw = readField(payload, responsePaths.signup);
+  const row = renameFields(object(raw, 'registration'), fields.registration);
+  if (!['created', 'pending_approval', 'verification_required'].includes(row.status)) {
+    throw new Error('Registration could not be confirmed. Check the signup response mapping.');
+  }
+  return {status:row.status, message:string(row.message), loginIdentifier:string(row.loginIdentifier)};
+}

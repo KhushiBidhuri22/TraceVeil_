@@ -159,3 +159,21 @@ export async function getRequestHeaders() {
   return {}; // Add runtime CSRF/auth headers here when the backend requires them.
 }
 // Never hardcode service secrets or passwords in browser-visible configuration.
+
+// 5 — PERSONNEL SIGNUP (added without replacing existing API connections)
+// BACKEND CONNECT: Put the real signup POST path in endpoints.signup above,
+// or replace null on the following line. Existing signup settings are preserved.
+// Registration does not log the user in or choose their access role.
+apiConfig.endpoints.signup ??= null;
+responsePaths.signup ??= 'registration';
+fields.registration ??= {
+  status: 'status', message: 'message', loginIdentifier: 'loginIdentifier',
+};
+backendCalls.signup ??= (request, {fullName, email, organization, password, signal}) =>
+  request('signup', {method: 'POST', body: {fullName, email, organization, password}, signal});
+// Expected acknowledgement: {registration:{status:'created'|'pending_approval'|
+// 'verification_required', message?:string, loginIdentifier?:string}}.
+// If your backend uses different names, adjust the mapping/request above.
+// Password confirmation stays in the form; it is not sent to the API.
+// Legacy export settings above are retained for integration compatibility only;
+// the current frontend has no export UI, service action or download module.

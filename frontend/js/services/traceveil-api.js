@@ -1,5 +1,5 @@
 import { request, ConnectionPending } from './http.js';
-import { mapActorResponse, mapSearch, mapSuggestions, mapSession } from './mappers.js';
+import { mapActorResponse, mapSearch, mapSuggestions, mapSession, mapRegistration } from './mappers.js';
 import { backendCalls } from '../../BACKEND_CONNECT.js';
 
 export const pending = () => ({status:'pending', data:null, message:'Connection pending'});
@@ -24,6 +24,6 @@ export const api = {
   actor: (id,signal) => resource(async () => mapActorResponse(await backendCalls.actor(request,{id,signal})), signal),
   session: signal => resource(async () => mapSession(await backendCalls.session(request,{signal})), signal),
   login: (username,password,signal) => resource(async () => mapSession(await backendCalls.login(request,{username,password,signal}),'login'), signal),
+  signup: (details,signal) => resource(async () => mapRegistration(await backendCalls.signup(request,{...details,signal})), signal),
   logout: signal => resource(() => backendCalls.logout(request,{signal}), signal),
-  export: (id,format,signal) => resource(() => backendCalls.export(request,{id,format,signal}), signal),
 };

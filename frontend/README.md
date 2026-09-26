@@ -1,6 +1,6 @@
 # TraceVeil — frontend
 
-This is the actual frontend source for your team's `darkweb-attribution/frontend/` folder. It preserves the approved glossy green/red design, animated background, search transition, popup dossier, graph beside the username, six account cards, and the book-opening card stack inside the ring. Glossy is now fixed, with no surface or pause-motion switches. Motion still respects the operating system’s reduced-motion setting. CSV and JSON are the only export formats.
+This is the actual frontend source for your team's `darkweb-attribution/frontend/` folder. It preserves the approved glossy green/red design, animated background, search transition, popup dossier, graph beside the username, six account cards, and the book-opening card stack inside the ring. Glossy is now fixed, with no surface or pause-motion switches. Motion still respects the operating system’s reduced-motion setting. Export actions and the help dialog have been removed. Navigation text is larger, and new visitors start on Sign up.
 
 There are **no sample accounts, usernames, wallets, keys, sources, scores or investigation records** in this package. Unconnected data fields say **Connection pending**.
 
@@ -40,15 +40,15 @@ Open **http://localhost:5500** in your browser. Keep that terminal running. Stop
 
 | Place | Initial behavior |
 |---|---|
-| First page | Personnel login with the glossy animated background. Unconnected sign-in shows **Connection pending**. |
+| First page | Sign up with the glossy animated background; existing users can choose Sign in. |
 | Search page | Opens after the server confirms a personnel session. No account is prefilled. |
 | **Try** dropdown | Shows **Connection pending**, disabled until suggestions arrive from the backend. |
 | Search action | Runs the visible transition, then shows a pending dossier when the search endpoint is unconfigured. It never invents a successful match. |
 | Actor workspace | All data fields remain pending. The six record-category cards remain clickable. |
 | Graph | Shows **Connection pending**; no invented graph nodes or connections. |
 | Detail screen | The centre card stack and ring interaction work; unconnected fields remain pending. |
-| Personnel access | First screen; sign-in stays disabled until session and login endpoints are configured. A saved, valid server session opens Search automatically. |
-| Export (CSV / JSON) | Disabled with **Connection pending** until there is an actual selected actor and export endpoint. |
+| Personnel access | Sign in is available at `#login`; a saved, valid server session opens Search automatically. |
+| Signup | A real registration acknowledgement opens Login. Signup never grants a workspace session. |
 
 Connect authentication first to enter the workspace. Pending search/actor/detail sections remain available after a verified session, while their respective endpoints are still unconnected. Direct hashes such as `#actor` cannot skip the login screen. The background is decorative geometry; it does not represent collected data.
 
@@ -69,7 +69,8 @@ Connect authentication first to enter the workspace. Pending search/actor/detail
 | `css/interactions.css` | Glitch overlay, dossier, and detail interaction styling. |
 | `css/orbit-book.css` | Circular record selector, 3D book hinge, card stack and enhanced gloss. |
 | `css/connections.css` | Pending, loading and disabled states, Try dropdown and access form. |
-| `css/access.css` | Responsive glossy personnel login screen. |
+| `css/access.css` | Responsive glossy personnel forms. |
+| `css/refinements.css` | Larger navigation and the signup layout. |
 | `css/numbers.css` | Shared segmented percentage typography. |
 | `css/fonts/traceveil-segment.woff` | Local numeric font; copy this binary from the ZIP. |
 | `js/app.js` | Starts the app; coordinates selected actor, navigation, verified-session gate, motion preference and views. |
@@ -81,7 +82,8 @@ Connect authentication first to enter the workspace. Pending search/actor/detail
 | `js/views/actor.js` | Account summary, six record cards, graph controls and filters. |
 | `js/views/detail.js` | Selects a detail chapter and hands it to the book/ring component. |
 | `js/views/access.js` | Personnel sign-in and sign-out UI using the backend session. |
-| `js/views/exports.js` | Requests and downloads actual files from the backend. |
+| `js/views/signup.js` | Registration form, validation, request cancellation and handoff to login. |
+| `js/models/navigation.js` | Public signup/login routes and the authenticated workspace gate. |
 | `js/components/background.js` | Shared 3D green particle ribbons and dot field. |
 | `js/components/network.js` | Draws actual graph nodes/edges and handles wheel rotation and clicking. |
 | `js/components/record-explorer.js` | Ring selection, centre stack, book opening and timeline playback. |
@@ -101,7 +103,7 @@ All paths in this table are relative to `frontend/`.
 
 Example: the search input in `index.html` has `id="query"`. In `js/views/search.js`, `document.querySelector('#query')` finds that input. Its `.value` is what the user typed.
 
-Before searching, `access.js` checks `api.session()`. Without a verified user it shows Login. `api.login()` sends the credentials; a successful response opens Search. Logout clears the account and returns to Login. These requests are all configured in `BACKEND_CONNECT.js`.
+Before searching, `access.js` checks `api.session()`. New visitors see Signup; existing users can choose Login. Protected routes still require a verified user. `api.login()` sends the credentials; a successful response opens Search. Logout clears the account and returns to Login. These requests are all configured in `BACKEND_CONNECT.js`.
 
 The complete search flow is:
 
@@ -128,7 +130,7 @@ The word `import` at the top of a JavaScript file means “use a function or cla
 3. Fill the actual server address and endpoint paths in section 1.
 4. Match response paths and field names in sections 2 and 3, where they differ.
 5. Adjust request methods/query/body in section 4 only if the API requires it.
-6. Connect `session`, `login` and `logout` first. A missing auth connection deliberately keeps the first page pending.
+6. Connect `signup` in section 5, then `session`, `login` and `logout`. Missing connections keep their forms pending. See `SIGNUP-API.md`.
 7. Leave unfinished endpoints and fields unconnected; they remain pending.
 
 The longer `API-CONTRACT.md` lists supported fields and behavior. Common integration edits now stay in `BACKEND_CONNECT.js`. Even if actor data comes from several endpoints, they can be combined in that file's `backendCalls.actor` function.
@@ -137,12 +139,21 @@ The default config makes no API requests. The frontend has no embedded credentia
 
 ## 7. Checks and remaining integration work
 
-This handoff is frontend code with connection hooks, not a connected investigation service. Backend URLs and payloads have not been provided yet. Full login/search/export behavior must be checked against your team's real services after integration.
+This handoff is frontend code with connection hooks, not a connected investigation service. Backend URLs and payloads have not been provided yet. Full signup/login/search behavior must be checked against your team's real services after integration.
 
-The source is checked for JavaScript syntax, local imports and assets, absence of prototype records, pending-state behavior, cancellation, response mapping, graph filtering, detail routing and the local static-file handler. The UI update is additionally checked with controlled DOM tests for login behavior, removed controls and export restrictions. Browser visual QA could not run in this workspace; review the layout after applying the update locally. The team’s real backend is still required for end-to-end integration validation.
+The source is checked for JavaScript syntax, local imports and assets, absence of prototype records, pending-state behavior, cancellation, response mapping, graph filtering, detail routing and the local static-file handler. The signup update is checked with isolated DOM/API tests for registration, login handoff, cancellation, response mapping and access protection. Styling changes still need browser review. Browser visual QA could not run in this workspace; review the layout after applying the update locally. The team’s real backend is still required for end-to-end integration validation.
 
 For a very large actor graph, a backend query should bound the returned graph or the team should add graph pagination/clustering. The renderer displays the actual returned nodes; it does not fabricate a smaller graph. Detail cards are reachable through groups of up to six ring branches and Previous/Next controls.
 
 ## Percentage styling
 
 `percentMarkup(value)` in `js/utils/display.js` wraps a supplied number in `.technical-percent`. The shared CSS applies the local segmented font in search dossiers, evidence cards and the centre book. Missing scores still show **Connection pending** in the normal font. Use the same helper if a real analysis-progress endpoint is added later. The search buffer stays indeterminate until an actual progress value is available.
+
+
+## September 26 update
+
+Removed the shared DATA LINK/status strip, help button and dialog, all export buttons and the export module, repeated actor/detail labels, graph instructions, and the ring's instruction/count row. Actor information, graph controls, filters, the animated background and book interaction remain. New search / Actor workspace back links and the top navigation are larger. The green-marked search section label is also larger.
+
+Signup is a public form with full name, work email, optional organization, password and confirmation. Registration is wired through section 5 of `BACKEND_CONNECT.js`; it is not a replacement authentication server. Existing connection settings were preserved when generating this update. A confirmed signup opens Login, while only a verified personnel session opens the workspace. Missing investigation fields still show Connection pending beside the relevant data; global diagnostic text is gone.
+
+When updating an already-integrated repository, use the supplied three-way Git patch. Do not copy an unconfigured reference `BACKEND_CONNECT.js` over a teammate's configured file.
