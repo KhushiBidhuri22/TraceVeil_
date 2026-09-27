@@ -21,8 +21,8 @@ body[data-screen=signup] .screen-nav,
 body[data-screen=signup] #access-button { display:none; }
 body[data-screen=signup] .auth-nav,
 body[data-screen=login] .auth-nav { display:flex; }
-/* Keep the signup introduction near the top of the form, not vertically centered. */
-.signup-screen { align-items:start; padding-top:36px; gap:clamp(28px,6vw,90px); }
+/* Center the signup introduction and form vertically and horizontally. */
+.signup-screen { align-items:center; min-height:calc(100svh - 180px); gap:clamp(28px,6vw,90px); padding:30px 0 40px; }
 .signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); }
 .signup-screen .access-panel h2 { font-size:1.5rem; }
 .access-panel .access-status[hidden] { display:none; }
@@ -47,5 +47,5 @@ body[data-screen=login] .auth-nav { display:flex; }
   .screen-nav a span { font-size:.8rem; }
   .back-link { font-size:1.125rem; }
   .auth-nav { gap:14px; }
-  .signup-screen { padding-top:24px; }
+  .signup-screen { padding:24px 0 36px; min-height:auto; }
 }

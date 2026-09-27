@@ -1,4 +1,11 @@
 /* First screen. Credentials are enabled only when real auth endpoints exist. */
+body[data-screen=signup] #main,
+body[data-screen=login] #main {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: calc(100svh - 140px);
+}
 body[data-screen=login] .screen-nav,
 body[data-screen=login] #access-button { display:none; }
 .login-screen {
@@ -6,10 +13,11 @@ body[data-screen=login] #access-button { display:none; }
   grid-template-columns:1.1fr 1fr;
   align-items:center;
   gap:clamp(36px,7vw,110px);
-  min-height:calc(100svh - 230px);
+  min-height:calc(100svh - 180px);
   max-width:1160px;
   margin:auto;
-  padding:56px 0 72px;
+  padding:30px 0 40px;
+  width:100%;
 }
 .access-intro .eyebrow { color:var(--red); letter-spacing:.1em; }
 .access-symbol { margin-right:8px; }
@@ -53,7 +61,12 @@ body[data-screen=login] #access-button { display:none; }
 .access-continue { margin-top:24px; }
 #session-retry { margin-top:20px; }
 @media(max-width:800px) {
-  .login-screen { grid-template-columns:1fr; max-width:510px; gap:32px; padding-top:38px; }
+  body[data-screen=signup] #main,
+  body[data-screen=login] #main {
+    min-height: auto;
+    display: block;
+  }
+  .login-screen { grid-template-columns:1fr; max-width:510px; gap:32px; padding:32px 0 48px; min-height:auto; }
   .access-intro h1 { font-size:clamp(2.8rem,10vw,4.1rem); margin:16px 0; }
   .access-intro .intro-copy { max-width:40ch; }
   .access-workflow { margin-top:22px; }
