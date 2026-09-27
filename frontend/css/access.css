@@ -3,8 +3,9 @@ body[data-screen=signup] #main,
 body[data-screen=login] #main {
   display: flex;
   flex-direction: column;
-  justify-content: center;
-  min-height: calc(100svh - 140px);
+  justify-content: flex-start;
+  min-height: calc(100svh - 130px);
+  padding-top: clamp(14px, 3vh, 32px);
 }
 body[data-screen=login] .screen-nav,
 body[data-screen=login] #access-button { display:none; }
@@ -13,10 +14,10 @@ body[data-screen=login] #access-button { display:none; }
   grid-template-columns:1.1fr 1fr;
   align-items:center;
   gap:clamp(36px,7vw,110px);
-  min-height:calc(100svh - 180px);
+  min-height:auto;
   max-width:1160px;
   margin:auto;
-  padding:30px 0 40px;
+  padding:10px 0 30px;
   width:100%;
 }
 .access-intro .eyebrow { color:var(--red); letter-spacing:.1em; }

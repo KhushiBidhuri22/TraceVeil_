@@ -22,20 +22,24 @@ body[data-screen=signup] #access-button { display:none; }
 body[data-screen=signup] .auth-nav,
 body[data-screen=login] .auth-nav { display:flex; }
 /* Center the signup introduction and form vertically and horizontally. */
-.signup-screen { align-items:center; min-height:calc(100svh - 180px); gap:clamp(28px,6vw,90px); padding:30px 0 40px; }
+.signup-screen { align-items:center; min-height:auto; gap:clamp(28px,6vw,90px); padding:10px 0 24px; }
+.signup-screen .access-intro { margin-top:-8px; }
 .signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); }
-.signup-screen .access-panel h2 { font-size:1.5rem; }
+.signup-screen .access-panel { padding:22px 26px 18px; }
+.signup-screen .access-panel h2 { font-size:1.4rem; }
 .access-panel .access-status[hidden] { display:none; }
 .access-panel .access-status[data-state=error] { color:var(--red); }
 .access-panel .access-form { min-width:0; }
 .access-panel .access-panel-foot { font-size:.875rem; line-height:1.8; letter-spacing:0; }
 .access-panel-foot a { color:var(--green); text-decoration:underline; text-underline-offset:4px; }
-.optional-label,.field-hint { color:var(--muted); font-size:.8rem; }
-.field-hint { margin:0; line-height:1.5; }
-.signup-screen .access-form { gap:8px; }
-.signup-screen .access-form input { min-height:44px; }
-.signup-screen .access-status { min-height:0; padding:8px 0 0; }
-.signup-screen .access-panel-foot { margin-top:22px; }
+.optional-label,.field-hint { color:var(--muted); font-size:.78rem; }
+.field-hint { margin:0; line-height:1.4; }
+.signup-screen .access-form { gap:6px; margin-top:10px; }
+.signup-screen .access-form label { margin-top:4px; font-size:.78rem; }
+.signup-screen .access-form input { min-height:40px; }
+.signup-screen .access-form button { margin-top:14px; }
+.signup-screen .access-status { min-height:0; padding:4px 0 0; }
+.signup-screen .access-panel-foot { margin-top:16px; padding-top:12px; }
 @media(max-width:1100px) {
   .app-header { flex-wrap:wrap; }
   .header-actions { margin-left:auto; }
