@@ -4,8 +4,8 @@ body[data-screen=login] #main {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  min-height: calc(100svh - 130px);
-  padding-top: clamp(14px, 3vh, 32px);
+  min-height: calc(100svh - 110px);
+  padding-top: clamp(6px, 1.5vh, 18px);
 }
 body[data-screen=login] .screen-nav,
 body[data-screen=login] #access-button { display:none; }
@@ -17,7 +17,7 @@ body[data-screen=login] #access-button { display:none; }
   min-height:auto;
   max-width:1160px;
   margin:auto;
-  padding:10px 0 30px;
+  padding:0 0 20px;
   width:100%;
 }
 .access-intro .eyebrow { color:var(--red); letter-spacing:.1em; }

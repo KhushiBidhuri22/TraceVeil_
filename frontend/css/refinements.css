@@ -22,9 +22,9 @@ body[data-screen=signup] #access-button { display:none; }
 body[data-screen=signup] .auth-nav,
 body[data-screen=login] .auth-nav { display:flex; }
 /* Center the signup introduction and form vertically and horizontally. */
-.signup-screen { align-items:center; min-height:auto; gap:clamp(28px,6vw,90px); padding:10px 0 24px; }
-.signup-screen .access-intro { margin-top:-8px; }
-.signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); }
+.signup-screen { align-items:center; min-height:auto; gap:clamp(28px,6vw,90px); padding:0 0 16px; }
+.signup-screen .access-intro { margin-top:-14px; }
+.signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); margin:12px 0 16px; }
 .signup-screen .access-panel { padding:22px 26px 18px; }
 .signup-screen .access-panel h2 { font-size:1.4rem; }
 .access-panel .access-status[hidden] { display:none; }
