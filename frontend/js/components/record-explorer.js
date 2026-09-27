@@ -21,6 +21,7 @@ export class RecordExplorer {
     this.resize=new ResizeObserver(()=>this.layout());
     root.addEventListener('click',e=>this.click(e));
     root.addEventListener('keydown',e=>this.keydown(e));
+    this.onPageKeydown=e=>this.pageKeydown(e);
     root.addEventListener('input',e=>{if(e.target.matches('[data-time-range]'))this.select(Number(e.target.value));});
     document.addEventListener('visibilitychange',()=>{if(document.hidden){this.pause();this.finishTurn();}});
   }
@@ -43,6 +44,8 @@ export class RecordExplorer {
     this.resize.observe(this.root.querySelector('.orbit-workspace'));
     this.resize.observe(this.root.querySelector('.orbit-book'));
     this.updateSelection();
+    // One shared handler while this book view is open, including when its title has focus.
+    document.addEventListener('keydown',this.onPageKeydown);
     requestAnimationFrame(()=>{if(generation!==this.viewGeneration)return;this.layout();this.turn();});
   }
   pageMarkup() {
@@ -52,7 +55,7 @@ export class RecordExplorer {
     const sourceUrl=safeLink(p.url);
     const source=sourceUrl?`<a class="text-button" href="${h(sourceUrl)}" target="_blank" rel="noopener noreferrer">Open source ↗</a>`:'';
     const links=p.links?.length?`<div class="book-related">${p.links.map(l=>`<button class="text-button" data-explore="${h(l.route)}">${h(l.label)} ↗</button>`).join('')}</div>`:'';
-    return `<article class="focus-sheet book-sheet"><div class="sheet-kicker"><span>${p.placeholder?'FIELD':this.topic==='evidence'&&!p.empty?'CLUE':'PAGE'} ${two(this.page+1)} / ${two(this.pages.length)}</span><span>${h(p.kicker)}</span></div><div class="book-title"><h2 id="ring-page-title">${h(p.title)}</h2>${score}</div><p class="focus-copy">${h(p.body)}</p>${identifier}${p.facts?meta(p.facts):''}${p.moment!==undefined?snapshotMarkup(this.actor,p.moment):''}${links}${source}${p.note?`<p class="explorer-note">${h(p.note)}</p>`:''}<footer class="book-controls"><button class="quiet-button" data-book-step="-1" ${this.page===0?'disabled':''} aria-label="Previous card">← Previous</button><span>${this.page+1} / ${this.pages.length}</span><button class="quiet-button" data-book-step="1" ${this.page===this.pages.length-1?'disabled':''} aria-label="Next card">Next →</button></footer></article>`;
+    return `<article class="focus-sheet book-sheet"><div class="sheet-kicker"><span>${h(p.kicker)}</span></div><div class="book-title"><h2 id="ring-page-title">${h(p.title)}</h2>${score}</div><p class="focus-copy">${h(p.body)}</p>${identifier}${p.facts?meta(p.facts):''}${p.moment!==undefined?snapshotMarkup(this.actor,p.moment):''}${links}${source}${p.note?`<p class="explorer-note">${h(p.note)}</p>`:''}<footer class="book-controls"><button class="quiet-button" data-book-step="-1" ${this.page===0?'disabled':''} aria-label="Previous card" aria-keyshortcuts="ArrowLeft" title="Previous card (Left arrow)">← Previous</button><button class="quiet-button" data-book-step="1" ${this.page===this.pages.length-1?'disabled':''} aria-label="Next card" aria-keyshortcuts="ArrowRight" title="Next card (Right arrow)">Next →</button></footer></article>`;
   }
   layout() {
     const stage=this.root.querySelector('.orbit-workspace'),book=this.root.querySelector('.orbit-book');
@@ -132,6 +135,7 @@ export class RecordExplorer {
     if(this.hasEvents)this.onMoment(this.pages[this.page].moment,false);
   }
   leave() {
+    document.removeEventListener('keydown',this.onPageKeydown);
     this.viewGeneration++;this.pause();this.finishTurn();
   }
   pause() {
@@ -160,12 +164,27 @@ export class RecordExplorer {
     if('play' in d){this.togglePlayback();return;}
     if('viewMoment' in d){this.pause();this.onMoment(this.pages[this.page].moment,true);}
   }
+  pageKeydown(e) {
+    if(!['ArrowLeft','ArrowRight'].includes(e.key)||e.defaultPrevented||e.isComposing||e.altKey||e.ctrlKey||e.metaKey||e.shiftKey)return;
+    if(document.hidden||!this.root.isConnected||this.root.closest('[hidden], [inert]')||document.querySelector('dialog[open]'))return;
+    // Leave text cursors, dropdowns, sliders and editable fields in control of their arrows.
+    const target=e.target;
+    if(target?.isContentEditable||target?.closest?.('input, textarea, select, [contenteditable]:not([contenteditable="false"]), [role="textbox"], [role="combobox"], [role="slider"]'))return;
+    const step=e.key==='ArrowRight'?1:-1;
+    const button=this.root.querySelector(`[data-book-step="${step}"]`);
+    if(!button)return;
+    e.preventDefault();
+    // A held key or an unfinished flip must not skip through several records.
+    if(e.repeat||button.disabled||this.root.querySelector('.book-live')?.inert)return;
+    button.click(); // Reuse the button's selection, focus and book-flip animation.
+  }
   keydown(e) {
     const node=e.target.closest('button[data-ring-page]');if(!node)return;
     const count=this.pages.length,current=Number(node.dataset.ringPage);
     let target;
-    if(['ArrowRight','ArrowDown'].includes(e.key))target=(current+1)%count;
-    if(['ArrowLeft','ArrowUp'].includes(e.key))target=(current+count-1)%count;
+    // Left/right bubble to the book buttons; up/down still navigate the orbit nodes.
+    if(e.key==='ArrowDown')target=(current+1)%count;
+    if(e.key==='ArrowUp')target=(current+count-1)%count;
     if(e.key==='Home')target=0;if(e.key==='End')target=count-1;
     if(target===undefined)return;
     e.preventDefault();this.select(target);this.root.querySelector(`button[data-ring-page="${target}"]`)?.focus({preventScroll:true});
