@@ -9,9 +9,11 @@
   font:600 1.125rem/1.5 var(--display);
   color:var(--heading);
 }
-.search-location { font-size:1rem; color:var(--heading); }
 .graph-bottom { justify-content:flex-end; }
 .detail-heading { justify-content:flex-start; }
+/* The remaining card date/category stays right-aligned after removing page counters. */
+.book-sheet .sheet-kicker { justify-content:flex-end; }
+.book-sheet .sheet-kicker>span:only-child { white-space:normal; overflow-wrap:anywhere; }
 .auth-nav { display:none; align-items:center; gap:22px; font:600 1rem/1.4 var(--display); }
 .auth-nav a { display:inline-flex; align-items:center; min-height:44px; border-bottom:1px solid transparent; }
 .auth-nav a[aria-current=page] { border-color:var(--red); color:var(--heading); }
@@ -19,7 +21,8 @@ body[data-screen=signup] .screen-nav,
 body[data-screen=signup] #access-button { display:none; }
 body[data-screen=signup] .auth-nav,
 body[data-screen=login] .auth-nav { display:flex; }
-.signup-screen { padding-top:36px; gap:clamp(28px,6vw,90px); }
+/* Keep the signup introduction near the top of the form, not vertically centered. */
+.signup-screen { align-items:start; padding-top:36px; gap:clamp(28px,6vw,90px); }
 .signup-screen .access-intro h1 { font-size:clamp(2.6rem,4.8vw,4.75rem); }
 .signup-screen .access-panel h2 { font-size:1.5rem; }
 .access-panel .access-status[hidden] { display:none; }
