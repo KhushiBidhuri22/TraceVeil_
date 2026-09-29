@@ -26,4 +26,5 @@ export const api = {
   login: (username,password,signal) => resource(async () => mapSession(await backendCalls.login(request,{username,password,signal}),'login'), signal),
   signup: (details,signal) => resource(async () => mapRegistration(await backendCalls.signup(request,{...details,signal})), signal),
   logout: signal => resource(() => backendCalls.logout(request,{signal}), signal),
+  export: (id,format,signal) => resource(() => backendCalls.export(request,{id,format,signal}), signal),
 };

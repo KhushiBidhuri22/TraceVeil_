@@ -8,6 +8,7 @@ import { ActorView } from './views/actor.js';
 import { renderDetail } from './views/detail.js';
 import { AccessView } from './views/access.js';
 import { SignupView } from './views/signup.js';
+import { ExportView } from './views/exports.js';
 import { api,pending,loading } from './services/traceveil-api.js';
 import { destinationForNode,destinationForEdge } from './models/workspace.js';
 import { text } from './utils/display.js';
@@ -48,6 +49,7 @@ const access=new AccessView({navigate,onChange:()=>{
   clearWorkspace();if(access.canRead())search.loadSuggestions();
 }});
 const signup=new SignupView({onRegistered:(registration,email)=>access.registered(registration,email)});
+const exportsView=new ExportView({dialogs,getActor:()=>actorResource.data,canRead:()=>access.canRead(),onStatus:connectionStatus});
 
 // Always wait for a real personnel session before opening the workspace.
 $('#search-form').addEventListener('submit',event=>{
@@ -64,7 +66,7 @@ function connectionStatus(resource) {
   return true;
 }
 function clearWorkspace() {
-  actorController?.abort();actorController=null;search.clear();explorer.leave();
+  actorController?.abort();actorController=null;search.clear();exportsView.cancel();explorer.leave();
   actorResource=pending();actorView.resetFilters();actorView.render(actorResource);
   $('#detail-content').replaceChildren();
   navigate(access.canRead()?'search':'login');
